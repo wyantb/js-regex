@@ -1,26 +1,26 @@
 (function (undefined) {
 
-    var regex = function () {
-        this.current = '';
+    // -----------------------
+    // Root Regex
+    // -----------------------
+
+    var Regex = function () {
+        this._current = '';
     };
 
-    regex.constructor = regex;
-    regex.fn = regex.prototype;
+    Regex.constructor = Regex;
+    Regex.fn = Regex.prototype;
 
-    regex.fn.add = function add(token) {
-        this.current += token;
+    Regex.fn.add = function add(token) {
+        this._current += token;
         return this;
     };
 
-    regex.fn.finish = function finish() {
-        return this.current;
+    Regex.fn.startGroup = function startGroup() {
+        return new Group(this);
     };
 
-    regex.fn.startGroup = function startGroup() {
-        return new group(this);
-    };
-
-    regex.tokens = regex.fn.tokens = {
+    Regex.tokens = Regex.fn.tokens = {
         dot: '.',
         // TODO etc
 
@@ -29,31 +29,46 @@
         // TODO etc
     };
 
-    var group = function (parent) {
-        this.parent = parent;
-        this.header = '(?:'; // non-capturing by default
-        this.contents = '';
-        this.footer = ')';
+    // -----------------------
+    // Group objects
+    // -----------------------
+
+    var Group = function (parent) {
+        this._parent = parent;
+        this._header = '(?:'; // non-capturing by default
+        this._contents = '';
+        this._footer = ')';
     };
 
-    group.constructor = group;
-    group.fn = group.prototype;
+    Group.constructor = Group;
+    Group.fn = Group.prototype;
 
-    group.fn.add = function add(token) {
-        this.contents += token;
+    Group.fn.add = function add(token) {
+        this._contents += token;
         return this;
     };
 
-    group.fn.closeGroup = function closeGroup() {
-        this.parent.add(this.header + this.contents + this.footer);
-        return this.parent;
+    Group.fn.closeGroup = function closeGroup() {
+        this._parent.add(this._header + this._contents + this._footer);
+        return this._parent;
     };
 
+    Group.fn.keep = function keep() {
+        this._header = '(';
+        return this;
+    };
+
+    // -----------------------
+    // Option objects
+    // -----------------------
+
+    // TODO
+
     if (typeof define === 'function' && define.amd) {
-        define([], regex);
+        define([], Regex);
     }
     else {
-        window.regex = regex;
+        window.Regex = Regex;
     }
 
 }());
