@@ -25,22 +25,34 @@
         makeFlags(this);
     };
 
-    RegexBase.literal = function literal(character) {
-        purgeLast(this);
+    RegexBase._purgeLast = function _purgeLast() {
+        this._current += this._last;
+        this._last = '';
+    };
 
-        this._last = getLiteral(character);
+    RegexBase._setLast = function _setLast(last) {
+        this._last = last;
         return this;
+    };
+
+    RegexBase._getLast = function _getLast() {
+        return this._last;
+    };
+
+    RegexBase.literal = function literal(character) {
+        this._purgeLast();
+
+        return this._setLast(getLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
-        purgeLast(this);
+        this._purgeLast();
 
-        this._last = getLiterals(string);
-        return this;
+        return this._setLast(getLiterals(string));
     };
 
     RegexBase.start = function start() {
-        purgeLast(this);
+        this._purgeLast();
 
         var newSegment = Object.create(RegexGroup);
         newSegment._init(this, this._keeps, this._cache);
@@ -50,9 +62,6 @@
     RegexBase.keep = function keep(name) {
         if (arguments.length !== 0 && typeof name !== 'string') {
             throw new Error('named error groups for keep must be a String');
-        }
-        if (this._keepLast) {
-            throw new Error('this group has already been marked to keep as ' + this._keepLast);
         }
         if (this._last === '') {
             throw new Error('nothing to capture');
@@ -74,49 +83,49 @@
             this._keeps.push(name);
         }
 
-        this._last = '(' + this._last + ')';
-
-        return this;
+        return this._setLast('(' + this._getLast() + ')');
     };
 
     RegexBase.repeat = function repeat(min, max) {
         if (lastWasMulticharacter(this)) {
-            this._last = '(?:' + this._last + ')';
+            this._setLast('(?:' + this._getLast() + ')');
         }
 
         if (!arguments.length) {
-            this._last = this._last + '*';
+            this._setLast(this._getLast() + '*');
         }
         else if (arguments.length === 1) {
             if (min === 0) {
-                this._last = this._last + '*';
+                this._setLast(this._getLast() + '*');
             }
             else if (min === 1) {
-                this._last = this._last + '+';
+                this._setLast(this._getLast() + '+');
             }
             else {
-                this._last = this._last + '{' + min + ',}';
+                this._setLast(this._getLast() + '{' + min + ',}');
             }
         }
         else {
-            this._last = this._last + '{' + min + ',' + max + '}';
+            this._setLast(this._getLast() + '{' + min + ',' + max + '}');
         }
-
-        delete this._keepLast;
 
         return this;
     };
+
+    // TODO followedBy
+    // TODO notFollowedBy
+    //   Will be double purpose, like any/none, in taking chars in cons or
+    //    allowing freeform additions via chaining
 
     RegexBase.any = function any(characters) {
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for any(), must be a String');
         }
 
-        purgeLast(this);
+        this._purgeLast();
 
         if (arguments.length) {
-            this._last = '[' + getLiterals(characters) + ']';
-            return this;
+            return this._setLast('[' + getLiterals(characters) + ']');
         }
         else {
             var newSet = Object.create(RegexCharacterSet);
@@ -130,11 +139,10 @@
             throw new Error('if specifying arguments for none(), must be a String');
         }
 
-        purgeLast(this);
+        this._purgeLast();
 
         if (arguments.length) {
-            this._last = '[^' + getLiterals(characters) + ']';
-            return this;
+            return this._setLast('[^' + getLiterals(characters) + ']');
         }
         else {
             var newSet = Object.create(RegexCharacterSet);
@@ -157,8 +165,8 @@
     function makeFlags(node) {
         function addFlag(flag) {
             return function flagFn() {
-                purgeLast(node);
-                node._last = flag;
+                node._purgeLast();
+                node._setLast(flag);
 
                 return node;
             };
@@ -174,8 +182,8 @@
                 newFlags += flagCharacters[newFlag];
             }
 
-            purgeLast(node);
-            node._last = newFlags;
+            node._purgeLast();
+            node._setLast(newFlags);
 
             return node;
         };
@@ -199,14 +207,14 @@
     };
 
     RegexBase.peek = function peek() {
-        return this._current + this._last;
+        return this._current + this._getLast();
     };
 
     var RegexGroup = Object.create(RegexBase);
     RegexGroup.close = function close() {
-        purgeLast(this);
+        this._purgeLast();
 
-        this._parent._last = this._current;
+        this._parent._setLast(this._current);
 
         return this._parent;
     };
@@ -222,12 +230,10 @@
     };
 
     RegexCharacterSet.close = function close() {
-        purgeLast(this);
+        this._purgeLast();
 
         var setFlags = this._excludeFlag ? '[^' : '[';
-        this._parent._last = setFlags + this._current + ']';
-
-        return this._parent;
+        return this._parent._setLast(setFlags + this._current + ']');
     };
 
     // Represents the root object created by executing regex()
@@ -237,7 +243,7 @@
     // TODO .macro(name) -- to reference already created macro
 
     RegexRoot.test = function test(string) {
-        purgeLast(this);
+        this._purgeLast();
 
         return getCached(this).test(string);
     };
@@ -250,7 +256,7 @@
         // TODO callback can be a string or function
         // TODO can handle keep never getting called
 
-        purgeLast(this);
+        this._purgeLast();
 
         var node = this;
         return string.replace(getCached(this), function () {
@@ -268,7 +274,7 @@
     };
 
     RegexRoot._reClear = function () {
-        purgeLast(this);
+        this._purgeLast();
         this._current = '';
         return this;
     };
@@ -302,12 +308,6 @@
         return literals;
     }
 
-    function purgeLast(node) {
-        node._current += node._last;
-        node._last = '';
-        delete node._keepLast;
-    }
-
     function getCached(node) {
         var regex = node._cache[node._current];
         if (!regex) {
@@ -320,18 +320,18 @@
     }
 
     function lastWasCaptureGroup(node) {
-        return node._last.indexOf('(') === 0 && node._last.indexOf('(?:') !== 0;
+        return node._getLast().indexOf('(') === 0 && node._getLast().indexOf('(?:') !== 0;
     }
 
     function lastWasChoice(node) {
-        return node._last.indexOf('[') === 0;
+        return node._getLast().indexOf('[') === 0;
     }
 
     function lastWasMulticharacter(node) {
         return !lastWasCaptureGroup(node) && !lastWasChoice(node) &&
-            node._last.length >= 2 &&
+            node._getLast().length >= 2 &&
             // special character literal:
-            !(node._last.indexOf('\\') === 0 && node._last.length === 2);
+            !(node._getLast().indexOf('\\') === 0 && node._getLast().length === 2);
     }
 
     /*global define:true */
@@ -343,3 +343,4 @@
     }
 
 }());
+
