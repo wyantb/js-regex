@@ -78,6 +78,10 @@
     };
 
     RegexBase.repeat = function repeat(min, max) {
+        if (lastWasMulticharacter(this)) {
+            this._last = '(?:' + this._last + ')';
+        }
+
         if (!arguments.length) {
             this._last = this._last + '*';
         }
@@ -153,8 +157,15 @@
         });
     };
 
-    RegexRoot.reset = function() {
+    RegexRoot._reClear = function () {
+        purgeLast(this);
+        this._current = '';
+        return this;
+    };
+
+    RegexRoot._cacheClear = function() {
         this._cache = {};
+        return this;
     };
 
     // -----------------------
@@ -200,6 +211,10 @@
 
     function lastWasCaptureGroup(node) {
         return node._last.indexOf('(') === 0 && node._last.indexOf('(?:') !== 0;
+    }
+
+    function lastWasMulticharacter(node) {
+        return !lastWasCaptureGroup(node) && node._last.length >= 2 && !(node._last.indexOf('\\') === 0 && node._last.length === 2);
     }
 
     /*global define:true */
