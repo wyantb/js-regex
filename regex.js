@@ -102,6 +102,22 @@
         return this;
     };
 
+    RegexBase.any = function any(characters) {
+        purgeLast(this);
+
+        // TODO errors and such
+        this._last = '[' + characters + ']';
+        return this;
+    };
+
+    RegexBase.none = function none(characters) {
+        purgeLast(this);
+
+        // TODO errors and such
+        this._last = '[^' + characters + ']';
+        return this;
+    };
+
     RegexBase.call = function call(callback) {
         callback.call(this, this);
         return this;
@@ -213,8 +229,15 @@
         return node._last.indexOf('(') === 0 && node._last.indexOf('(?:') !== 0;
     }
 
+    function lastWasChoice(node) {
+        return node._last.indexOf('[') === 0;
+    }
+
     function lastWasMulticharacter(node) {
-        return !lastWasCaptureGroup(node) && node._last.length >= 2 && !(node._last.indexOf('\\') === 0 && node._last.length === 2);
+        return !lastWasCaptureGroup(node) && !lastWasChoice(node) &&
+            node._last.length >= 2 &&
+            // special character literal:
+            !(node._last.indexOf('\\') === 0 && node._last.length === 2);
     }
 
     /*global define:true */
