@@ -197,14 +197,21 @@
     };
 
     var flagCharacters = {
+        '.': '.',
         '^': '^',
         '$': '^',
-
         'd': '\\d',
         'D': '\\D',
         's': '\\s',
         'S': '\\S',
-        // TODO others
+        'f': '\\f',
+        'n': '\\n',
+        'r': '\\r',
+        't': '\\t',
+        'v': '\\v',
+        'w': '\\w',
+        'W': '\\W',
+        '0': '\\0',
     };
 
     function makeFlags(node) {
@@ -233,15 +240,28 @@
             return node;
         };
 
-        flags.start = addFlag('^');
-        flags.end = addFlag('$');
+        flags.start =                    addFlag('^');
+        flags.end =                      addFlag('$');
 
-        flags.digit = addFlag('\\d');
-        flags.nonDigit = addFlag('\\D');
-        flags.whitespace = addFlag('\\s');
-        flags.nonWhitespace = addFlag('\\S');
+        flags.any = flags.dot =          addFlag('.');
+        flags.digit =                    addFlag('\\d');
+        flags.nonDigit =                 addFlag('\\D');
+        flags.whitespace =               addFlag('\\s');
+        flags.nonWhitespace =            addFlag('\\S');
 
-        // TODO others
+        flags.backspace =                addFlag('[\\b]');
+        flags.wordBoundary =             addFlag('\\b');
+        flags.nonWordBoundary =          addFlag('\\B');
+        flags.formfeed =                 addFlag('\\f');
+        flags.newline = flags.linefeed = addFlag('\\n');
+        flags.carriageReturn =           addFlag('\\r');
+        flags.tab =                      addFlag('\\t');
+        flags.verticalTab =              addFlag('\\v');
+        flags.alphanumeric =             addFlag('\\w');
+        flags.nonAlphanumberic =         addFlag('\\W');
+        flags.nullCharacter =            addFlag('\\0');
+
+        // TODO hexadecimal flags
 
         node.f = node.flags = flags;
     }
