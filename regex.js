@@ -21,6 +21,8 @@
         this._parent = _parent || {};
         this._keeps =  _keeps  || [];// for 'keep' method
         this._cache =  _cache  || {};
+
+        makeFlags(this);
     };
 
     RegexBase.literal = function literal(character) {
@@ -86,7 +88,10 @@
             this._last = this._last + '*';
         }
         else if (arguments.length === 1) {
-            if (min === 1) {
+            if (min === 0) {
+                this._last = this._last + '*';
+            }
+            else if (min === 1) {
                 this._last = this._last + '+';
             }
             else {
@@ -103,20 +108,90 @@
     };
 
     RegexBase.any = function any(characters) {
+        if (arguments.length && typeof characters !== 'string') {
+            throw new Error('if specifying arguments for any(), must be a String');
+        }
+
         purgeLast(this);
 
-        // TODO errors and such
-        this._last = '[' + characters + ']';
-        return this;
+        if (arguments.length) {
+            this._last = '[' + getLiterals(characters) + ']';
+            return this;
+        }
+        else {
+            var newSet = Object.create(RegexCharacterSet);
+            newSet._init(this, this._keeps, this._cache, false);
+            return newSet;
+        }
     };
 
     RegexBase.none = function none(characters) {
+        if (arguments.length && typeof characters !== 'string') {
+            throw new Error('if specifying arguments for none(), must be a String');
+        }
+
         purgeLast(this);
 
-        // TODO errors and such
-        this._last = '[^' + characters + ']';
-        return this;
+        if (arguments.length) {
+            this._last = '[^' + getLiterals(characters) + ']';
+            return this;
+        }
+        else {
+            var newSet = Object.create(RegexCharacterSet);
+            newSet._init(this._parent, this._keeps, this._cache, true);
+            return newSet;
+        }
     };
+
+    var flagCharacters = {
+        '^': '^',
+        '$': '^',
+
+        'd': '\\d',
+        'D': '\\D',
+        's': '\\s',
+        'S': '\\S',
+        // TODO others
+    };
+
+    function makeFlags(node) {
+        function addFlag(flag) {
+            return function flagFn() {
+                purgeLast(node);
+                node._last = flag;
+
+                return node;
+            };
+        }
+
+        var flags = function flags(flagsToAdd) {
+            var newFlags = '';
+            for (var i = 0, len = flagsToAdd.length; i < len; i++) {
+                var newFlag = flagsToAdd[i];
+                if (!flagCharacters[newFlag]) {
+                    throw new Error('unrecognized flag: ' + newFlag);
+                }
+                newFlags += flagCharacters[newFlag];
+            }
+
+            purgeLast(node);
+            node._last = newFlags;
+
+            return node;
+        };
+
+        flags.start = addFlag('^');
+        flags.end = addFlag('$');
+
+        flags.digit = addFlag('\\d');
+        flags.nonDigit = addFlag('\\D');
+        flags.whitespace = addFlag('\\s');
+        flags.nonWhitespace = addFlag('\\S');
+
+        // TODO others
+
+        node.f = node.flags = flags;
+    }
 
     RegexBase.call = function call(callback) {
         callback.call(this, this);
@@ -132,6 +207,25 @@
         purgeLast(this);
 
         this._parent._last = this._current;
+
+        return this._parent;
+    };
+
+    var RegexCharacterSet = Object.create(RegexBase);
+
+    delete RegexCharacterSet.keep;
+    delete RegexCharacterSet.repeat;
+
+    RegexCharacterSet._init = function _init(_parent, _keeps, _cache, _excludeFlag) {
+        RegexBase._init.call(this, _parent, _keeps, _cache);
+        this._excludeFlag = _excludeFlag;
+    };
+
+    RegexCharacterSet.close = function close() {
+        purgeLast(this);
+
+        var setFlags = this._excludeFlag ? '[^' : '[';
+        this._parent._last = setFlags + this._current + ']';
 
         return this._parent;
     };
