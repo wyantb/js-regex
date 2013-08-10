@@ -19,7 +19,7 @@
         this._last = '';
 
         this._parent = _parent || {};
-        this._keeps =  _keeps  || {}; // for 'keepAs' method
+        this._keeps =  _keeps  || [];// for 'keepAs' method
         this._cache =  _cache  || {};
     };
 
@@ -41,7 +41,7 @@
         purgeLast(this);
 
         var newSegment = Object.create(RegexGroup);
-        newSegment._init(this, this._cache);
+        newSegment._init(this, this._keeps, this._cache);
         return newSegment;
     };
 
@@ -52,8 +52,11 @@
         if (this._keepLast) {
             throw new Error('this group has already been marked to keep as ' + this._keepLast);
         }
+        if (this._last === '') {
+            throw new Error('nothing to capture');
+        }
 
-        // this._keeps.captureGroup + 1 = name
+        this._keeps.push(name);
         this._last = '(' + this._last + ')';
         return this;
     };
@@ -97,12 +100,44 @@
     RegexRoot.test = function test(string) {
         purgeLast(this);
 
-        var regex = this._cache[this._current];
-        if (!regex) {
-            regex = this._cache[this._current] = new RegExp(this._current, this._flags);
-        }
-        return regex.test(string);
+        return getCached(this).test(string);
     };
+
+    RegexRoot.replaceOn = function replaceOn(string, callback) {
+        if (typeof string !== 'string') {
+            throw new Error('can only replaceOn Strings');
+        }
+
+        // TODO callback can be a string or function
+        // TODO can handle keepAs never getting called
+
+        purgeLast(this);
+
+        var node = this;
+        return string.replace(getCached(this), function () {
+            var args = Array.prototype.slice.call(arguments, 1);
+
+            var callbackHash = {};
+
+            for (var i = 0, len = args.length; i < len; i++) {
+                var name = node._keeps[i];
+                callbackHash[name] = args[i];
+            }
+
+            return callback(callbackHash);
+        });
+    };
+
+    function getCached(node) {
+        var regex = node._cache[node._current];
+        if (!regex) {
+            regex = node._cache[node._current] = new RegExp(node._current, node._flags);
+        }
+
+        // TODO option to disable node
+        regex.lastIndex = 0;
+        return regex;
+    }
 
     RegexRoot._printCurrent = function _printCurrent() {
         purgeLast(this);
