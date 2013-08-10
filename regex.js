@@ -146,9 +146,17 @@
         }
         else {
             var newSet = Object.create(RegexCharacterSet);
-            newSet._init(this._parent, this._keeps, this._cache, true);
+            newSet._init(this, this._keeps, this._cache, true);
             return newSet;
         }
+    };
+
+    RegexBase.or = function or() {
+        this._purgeLast();
+
+        var newOr = Object.create(RegexOr);
+        newOr._init(this, this._keeps, this._cache);
+        return newOr;
     };
 
     var flagCharacters = {
@@ -234,6 +242,17 @@
 
         var setFlags = this._excludeFlag ? '[^' : '[';
         return this._parent._setLast(setFlags + this._current + ']');
+    };
+
+    var RegexOr = Object.create(RegexGroup);
+
+    RegexOr._purgeLast = function _purgeLast() {
+        if (this._current) {
+            this._current += '|';
+        }
+        RegexBase._purgeLast.call(this);
+
+        return this;
     };
 
     // Represents the root object created by executing regex()
