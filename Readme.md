@@ -10,31 +10,27 @@ enough RegExp.
 Usage
 -----
 
-### Simple Testing
-
-```javascript
-regex()
-    .literal('a')
-    .test('a');   // Will return true
-```
-
-### Simple Replacing
+### Simple usage with peek()
 
 ```javascript
 regex()
     .literals('abc')
-    .replace('abc', function () {
-        return 'def';
-    });              // Will return 'def'
+    .peek();        // Will return 'abc'
 ```
 
-### Peeking at the RegExp source
+### Never stop chaining!
 
 ```javascript
 regex()
     .literals('abc')
+    .call(function (curNode) {
+        console.log(this === curNode); // Will print true
+        console.log(curNode.peek());   // Will print 'abc'
+    })
     .literals('def')
-    .peek();        // Will return 'abcdef'
+    .call(function (curNode) {
+        console.log(curNode.peek());   // Will print 'abcdef'
+    });
 ```
 
 ### Special Flags
@@ -53,16 +49,6 @@ regex()
     .literals('aaa')
       .keep()
     .peek();        // Will return '(aaa)'
-
-regex()
-    .literals('bbb')
-    .literals('aaa')
-      .keep('named')
-    .literals('bbb')
-    .replace('bbbaaabbb', function (groups) {
-        console.log(groups.named);     // Will print 'aaa'
-        return 'ccc' + groups.named + 'ccc';
-    });                                // Will return 'cccaaaccc'
 ```
 
 ### Repeating
@@ -70,13 +56,16 @@ regex()
 ```javascript
 regex()
     .literals('aaa')
-      .repeat(1, 3)
-    .peek();        // Will return '(?:aaa){1,3}'
+      .repeat()
+    .peek();        // Will return '(?:aaa)*'
 
 regex()
     .literals('aaa')
-      .repeat()
-    .peek();        // Will return '(?:aaa)*'
+    .call(function (curNode) {
+        console.log(curNode.peek()); // Will print 'aaa'
+    })
+      .repeat(1, 3)
+    .peek();                         // Will return '(?:aaa){1,3}'
 ```
 
 ### Simple Grouping
@@ -139,3 +128,44 @@ regex()
     .peek();               // Will return '(?:ccc)(?!ddd)
 ```
 
+Experimental Methods
+--------------------
+
+### Simple Testing
+
+test() is still kinda pointless.
+
+```javascript
+regex()
+    .literal('a')
+    .test('a');   // Will return true
+```
+
+### Simple Replacing
+
+replace() is probably pretty buggy, especially with multiple named capture groups
+ in a row.
+
+```javascript
+regex()
+    .literals('abc')
+    .replace('abc', function () {
+        return 'def';
+    });              // Will return 'def'
+```
+
+### Named Capture Groups
+
+Probably buggy.
+
+```javascript
+regex()
+    .literals('bbb')
+    .literals('aaa')
+      .keep('named')
+    .literals('bbb')
+    .replace('aaa', function (groups) {
+        console.log(groups.named);     // Will print 'aaa'
+        return 'ccc' + groups.named + 'ccc';
+    });                                // Will return 'cccaaaccc'
+```
