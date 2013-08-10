@@ -6,7 +6,7 @@
     // Root Regex
     // -----------------------
 
-    var Regex = function () {
+    var regex = function () {
         var root = Object.create(RegexRoot);
         root._init();
         return root;
@@ -40,17 +40,9 @@
     RegexBase.start = function start() {
         purgeLast(this);
 
-        var newSegment = Object.create(RegexBase);
+        var newSegment = Object.create(RegexGroup);
         newSegment._init(this, this._cache);
         return newSegment;
-    };
-
-    RegexBase.close = function close() {
-        purgeLast(this);
-
-        this._parent._last = this._current;
-
-        return this._parent;
     };
 
     RegexBase.keepAs = function keepAs(name) {
@@ -87,13 +79,17 @@
         return this;
     };
 
-    var RegexRoot = {};
-    RegexRoot._init = RegexBase._init;
-    RegexRoot.literal = RegexBase.literal;
-    RegexRoot.literals = RegexBase.literals;
-    RegexRoot.start = RegexBase.start;
-    RegexRoot.keepAs = RegexBase.keepAs;
-    RegexRoot.repeat = RegexBase.repeat;
+    var RegexGroup = Object.create(RegexBase);
+    RegexGroup.close = function close() {
+        purgeLast(this);
+
+        this._parent._last = this._current;
+
+        return this._parent;
+    };
+
+    // Represents the root object created by executing regex()
+    var RegexRoot = Object.create(RegexBase);
 
     // TODO .macro()     -- to create a macro
     // TODO .macro(name) -- to reference already created macro
@@ -152,10 +148,10 @@
 
     /*global define:true */
     if (typeof define === 'function' && define.amd) {
-        define([], Regex);
+        define([], regex);
     }
     else {
-        window.Regex = Regex;
+        window.regex = regex;
     }
 
 }());
