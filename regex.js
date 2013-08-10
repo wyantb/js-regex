@@ -1,4 +1,11 @@
 
+/**
+ * js-regex: a chainable regex building library for Javascript.
+ *
+ * @author    Brian Wyant <wyantb@gmail.com>
+ * @license   http://opensource.org/licenses/MIT
+**/
+
 (function (undefined) {
     'use strict';
 
