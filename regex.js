@@ -19,7 +19,7 @@
         this._last = '';
 
         this._parent = _parent || {};
-        this._keeps =  _keeps  || [];// for 'keepAs' method
+        this._keeps =  _keeps  || [];// for 'keep' method
         this._cache =  _cache  || {};
     };
 
@@ -45,9 +45,9 @@
         return newSegment;
     };
 
-    RegexBase.keepAs = function keepAs(name) {
-        if (typeof name !== 'string') {
-            throw new Error('named error groups for keepAs must be a String');
+    RegexBase.keep = function keep(name) {
+        if (arguments.length !== 0 && typeof name !== 'string') {
+            throw new Error('named error groups for keep must be a String');
         }
         if (this._keepLast) {
             throw new Error('this group has already been marked to keep as ' + this._keepLast);
@@ -56,8 +56,24 @@
             throw new Error('nothing to capture');
         }
 
-        this._keeps.push(name);
+        if (!name) {
+            name = String(this._keeps.length + 1);
+        }
+
+        if (lastWasCaptureGroup(this)) {
+            // This new group will appear before the current one, so we'll have to shuffle them
+            var lastIndex = this._keeps.length - 1;
+            var lastGroupName = this._keeps[lastIndex];
+            this._keeps[lastIndex] = name;
+            this._keeps.push(lastGroupName);
+        }
+        else {
+            // We can just add another group to keep with
+            this._keeps.push(name);
+        }
+
         this._last = '(' + this._last + ')';
+
         return this;
     };
 
@@ -82,6 +98,15 @@
         return this;
     };
 
+    RegexBase.call = function call(callback) {
+        callback.call(this, this);
+        return this;
+    };
+
+    RegexBase.peek = function peek() {
+        return this._current + this._last;
+    };
+
     var RegexGroup = Object.create(RegexBase);
     RegexGroup.close = function close() {
         purgeLast(this);
@@ -103,13 +128,13 @@
         return getCached(this).test(string);
     };
 
-    RegexRoot.replaceOn = function replaceOn(string, callback) {
+    RegexRoot.replace = function replace(string, callback) {
         if (typeof string !== 'string') {
-            throw new Error('can only replaceOn Strings');
+            throw new Error('can only call replace with a String and callback replace method');
         }
 
         // TODO callback can be a string or function
-        // TODO can handle keepAs never getting called
+        // TODO can handle keep never getting called
 
         purgeLast(this);
 
@@ -128,25 +153,6 @@
         });
     };
 
-    function getCached(node) {
-        var regex = node._cache[node._current];
-        if (!regex) {
-            regex = node._cache[node._current] = new RegExp(node._current, node._flags);
-        }
-
-        // TODO option to disable node
-        regex.lastIndex = 0;
-        return regex;
-    }
-
-    RegexRoot._printCurrent = function _printCurrent() {
-        purgeLast(this);
-        if (window && window.console && window.console.log) {
-            window.console.log(this._current);
-        }
-        return this;
-    };
-
     RegexRoot.reset = function() {
         this._cache = {};
     };
@@ -159,10 +165,10 @@
 
     function getLiteral(character) {
         if (typeof character !== 'string') {
-            throw new Error('the literal() function only takes Strings');
+            throw new Error('the literal() and literals() functions only takes Strings');
         }
         if (character.length !== 1) {
-            throw new Error('all literals must be one character');
+            throw new Error('only one characteer can be given for literal()');
         }
         return specialCharacters.indexOf(character) === -1 ? character : '\\' + character;
     }
@@ -179,6 +185,21 @@
         node._current += node._last;
         node._last = '';
         delete node._keepLast;
+    }
+
+    function getCached(node) {
+        var regex = node._cache[node._current];
+        if (!regex) {
+            regex = node._cache[node._current] = new RegExp(node._current, node._flags);
+        }
+
+        // TODO option to disable this
+        regex.lastIndex = 0;
+        return regex;
+    }
+
+    function lastWasCaptureGroup(node) {
+        return node._last.indexOf('(') === 0 && node._last.indexOf('(?:') !== 0;
     }
 
     /*global define:true */
