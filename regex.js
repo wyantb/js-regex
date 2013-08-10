@@ -112,14 +112,51 @@
         return this;
     };
 
-    // TODO followedBy
-    // TODO notFollowedBy
-    //   Will be double purpose, like any/none, in taking chars in cons or
-    //    allowing freeform additions via chaining
+    RegexBase.followedBy = function followedBy(string) {
+        if (arguments.length && typeof string !== 'string') {
+            throw new Error('if specifying arguments for followedBy(), must be a String of literals');
+        }
+
+        if (lastWasMulticharacter(this)) {
+            this._setLast('(?:' + this._getLast() + ')');
+        }
+
+        this._purgeLast();
+
+        if (arguments.length) {
+            return this._setLast('(?=' + getLiterals(string) + ')');
+        }
+        else {
+            var newFollowed = Object.create(RegexFollowedBy);
+            newFollowed._init(this, this._keeps, this._cache, false);
+            return newFollowed;
+        }
+    };
+
+    RegexBase.notFollowedBy = function notFollowedBy(string) {
+        if (arguments.length && typeof string !== 'string') {
+            throw new Error('if specifying arguments for notFollowedBy(), must be a String of literals');
+        }
+
+        if (lastWasMulticharacter(this)) {
+            this._setLast('(?:' + this._getLast() + ')');
+        }
+
+        this._purgeLast();
+
+        if (arguments.length) {
+            return this._setLast('(?!' + getLiterals(string) + ')');
+        }
+        else {
+            var newFollowed = Object.create(RegexFollowedBy);
+            newFollowed._init(this, this._keeps, this._cache, true);
+            return newFollowed;
+        }
+    };
 
     RegexBase.any = function any(characters) {
         if (arguments.length && typeof characters !== 'string') {
-            throw new Error('if specifying arguments for any(), must be a String');
+            throw new Error('if specifying arguments for any(), must be a String of literals');
         }
 
         this._purgeLast();
@@ -136,7 +173,7 @@
 
     RegexBase.none = function none(characters) {
         if (arguments.length && typeof characters !== 'string') {
-            throw new Error('if specifying arguments for none(), must be a String');
+            throw new Error('if specifying arguments for none(), must be a String of literals');
         }
 
         this._purgeLast();
@@ -253,6 +290,20 @@
         RegexBase._purgeLast.call(this);
 
         return this;
+    };
+
+    var RegexFollowedBy = Object.create(RegexBase);
+
+    RegexFollowedBy._init = function _init(_parent, _keeps, _cache, _notFlag) {
+        RegexBase._init.call(this, _parent, _keeps, _cache);
+        this._notFlag = _notFlag;
+    };
+
+    RegexFollowedBy.close = function close() {
+        this._purgeLast();
+
+        var notFlags = this._notFlag ? '(?!' : '(?=';
+        return this._parent._setLast(notFlags + this._current + ')');
     };
 
     // Represents the root object created by executing regex()
