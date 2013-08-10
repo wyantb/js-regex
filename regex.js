@@ -14,29 +14,31 @@
 
     var RegexBase = {};
 
-    RegexBase._init = function _init(_parent, _cache) {
+    RegexBase._init = function _init(_parent, _keeps, _cache) {
         this._current = '';
-        this._cache = _cache || {};
-        this._flags = undefined;
         this._last = '';
+
         this._parent = _parent || {};
+        this._keeps =  _keeps  || {}; // for 'keepAs' method
+        this._cache =  _cache  || {};
     };
 
     RegexBase.literal = function literal(character) {
-        this._current += this._last;
+        purgeLast(this);
+
         this._last = getLiteral(character);
         return this;
     };
 
     RegexBase.literals = function literals(string) {
-        this._current += this._last;
+        purgeLast(this);
+
         this._last = getLiterals(string);
         return this;
     };
 
     RegexBase.start = function start() {
-        this._current += this._last;
-        this._last = '';
+        purgeLast(this);
 
         var newSegment = Object.create(RegexBase);
         newSegment._init(this, this._cache);
@@ -44,28 +46,60 @@
     };
 
     RegexBase.close = function close() {
-        this._current += this._last;
-        this._last = '';
+        purgeLast(this);
 
-        this._parent._last = this._current
+        this._parent._last = this._current;
 
         return this._parent;
     };
 
-    // TODO .repeat()
+    RegexBase.keepAs = function keepAs(name) {
+        if (typeof name !== 'string') {
+            throw new Error('named error groups for keepAs must be a String');
+        }
+        if (this._keepLast) {
+            throw new Error('this group has already been marked to keep as ' + this._keepLast);
+        }
+
+        // this._keeps.captureGroup + 1 = name
+        this._last = '(' + this._last + ')';
+        return this;
+    };
+
+    RegexBase.repeat = function repeat(min, max) {
+        if (!arguments.length) {
+            this._last = this._last + '*';
+        }
+        else if (arguments.length === 1) {
+            if (min === 1) {
+                this._last = this._last + '+';
+            }
+            else {
+                this._last = this._last + '{' + min + ',}';
+            }
+        }
+        else {
+            this._last = this._last + '{' + min + ',' + max + '}';
+        }
+
+        delete this._keepLast;
+
+        return this;
+    };
 
     var RegexRoot = {};
     RegexRoot._init = RegexBase._init;
     RegexRoot.literal = RegexBase.literal;
     RegexRoot.literals = RegexBase.literals;
     RegexRoot.start = RegexBase.start;
+    RegexRoot.keepAs = RegexBase.keepAs;
+    RegexRoot.repeat = RegexBase.repeat;
 
     // TODO .macro()     -- to create a macro
     // TODO .macro(name) -- to reference already created macro
 
     RegexRoot.test = function test(string) {
-        this._current += this._last;
-        this._last = '';
+        purgeLast(this);
 
         var regex = this._cache[this._current];
         if (!regex) {
@@ -75,8 +109,9 @@
     };
 
     RegexRoot._printCurrent = function _printCurrent() {
+        purgeLast(this);
         if (window && window.console && window.console.log) {
-            window.console.log(this._current + this._last);
+            window.console.log(this._current);
         }
         return this;
     };
@@ -109,11 +144,11 @@
         return literals;
     }
 
-    // -----------------------
-    // Option objects
-    // -----------------------
-
-    // TODO
+    function purgeLast(node) {
+        node._current += node._last;
+        node._last = '';
+        delete node._keepLast;
+    }
 
     /*global define:true */
     if (typeof define === 'function' && define.amd) {
