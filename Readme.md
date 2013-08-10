@@ -59,10 +59,10 @@ regex()
     .literals('aaa')
       .keep('named')
     .literals('bbb')
-    .replace('aaa', function (groups) {
+    .replace('bbbaaabbb', function (groups) {
         console.log(groups.named);     // Will print 'aaa'
-        return 'ccc';
-    });                                // Will return 'bbbcccbbb'
+        return 'ccc' + groups.named + 'ccc';
+    });                                // Will return 'cccaaaccc'
 ```
 
 ### Repeating
@@ -111,7 +111,7 @@ regex()
         .literals('abc')
         .f.whitespace()
     .close()
-    .peek();            // Will return '[^abc\d]'
+    .peek();            // Will return '[^abc\s]'
 ```
 
 ### Or
