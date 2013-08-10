@@ -7,35 +7,63 @@
     // -----------------------
 
     var Regex = function () {
-        this._current = '';
-        this._cache = {};
-        this._flags = undefined;
-        this._last = '';
+        var root = Object.create(RegexRoot);
+        root._init();
+        return root;
     };
 
-    Regex.constructor = Regex;
-    Regex.fn = Regex.prototype;
+    var RegexBase = {};
 
-    Regex.fn.literal = function literal(character) {
+    RegexBase._init = function _init(_parent, _cache) {
+        this._current = '';
+        this._cache = _cache || {};
+        this._flags = undefined;
+        this._last = '';
+        this._parent = _parent || {};
+    };
+
+    RegexBase.literal = function literal(character) {
         this._current += this._last;
         this._last = getLiteral(character);
         return this;
     };
 
-    Regex.fn.literals = function literals(string) {
+    RegexBase.literals = function literals(string) {
         this._current += this._last;
         this._last = getLiterals(string);
         return this;
     };
 
-    Regex.fn.startGroup = function startGroup() {
+    RegexBase.start = function start() {
         this._current += this._last;
         this._last = '';
 
-        return new Group(this);
+        var newSegment = Object.create(RegexBase);
+        newSegment._init(this, this._cache);
+        return newSegment;
     };
 
-    Regex.fn.test = function test(string) {
+    RegexBase.close = function close() {
+        this._current += this._last;
+        this._last = '';
+
+        this._parent._last = this._current
+
+        return this._parent;
+    };
+
+    // TODO .repeat()
+
+    var RegexRoot = {};
+    RegexRoot._init = RegexBase._init;
+    RegexRoot.literal = RegexBase.literal;
+    RegexRoot.literals = RegexBase.literals;
+    RegexRoot.start = RegexBase.start;
+
+    // TODO .macro()     -- to create a macro
+    // TODO .macro(name) -- to reference already created macro
+
+    RegexRoot.test = function test(string) {
         this._current += this._last;
         this._last = '';
 
@@ -46,14 +74,14 @@
         return regex.test(string);
     };
 
-    Regex.fn._purge = function _purge() {
-        this._current += this._last;
-        this._last = '';
-
+    RegexRoot._printCurrent = function _printCurrent() {
+        if (window && window.console && window.console.log) {
+            window.console.log(this._current + this._last);
+        }
         return this;
     };
 
-    Regex.fn.reset = function() {
+    RegexRoot.reset = function() {
         this._cache = {};
     };
 
@@ -80,71 +108,6 @@
         }
         return literals;
     }
-
-    function addToNode(node, content) {
-        if (typeof node._current === 'string') {
-            node._last = content;
-            return;
-        }
-        else if (typeof node._contents === 'string') {
-            node._last = content;
-            return;
-        }
-
-        // should never happen in prod
-        throw new Error('unable to add to parent node?');
-    }
-
-    // -----------------------
-    // Group objects
-    // -----------------------
-
-    var Group = function (parent) {
-        this._parent = parent;
-        this._header = '(?:'; // non-capturing by default
-        this._contents = '';
-        this._footer = ')';
-        this._last = '';
-    };
-
-    Group.constructor = Group;
-    Group.fn = Group.prototype;
-
-    Group.fn.literal = function literal(character) {
-        this._contents += this._last;
-        this._last = getLiteral(character);
-        return this;
-    };
-
-    Group.fn.literals = function literals(string) {
-        this._contents += this._last;
-        this._last = getLiterals(string);
-        return this;
-    };
-
-    Group.fn.startGroup = function startGroup() {
-        this._current += this._last;
-        this._last = '';
-
-        return new Group(this);
-    };
-
-    Group.fn.closeGroup = function closeGroup() {
-        this._contents += this._last;
-        this._last = '';
-        addToNode(this._parent, this._header + this._contents + this._footer);
-        return this._parent;
-    };
-
-    Group.fn.keep = function keep() {
-        this._header = '(';
-        return this;
-    };
-
-    Group.fn.discard = function discard() {
-        this._header = '(?:';
-        return this;
-    };
 
     // -----------------------
     // Option objects
