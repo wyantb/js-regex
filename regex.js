@@ -21,13 +21,13 @@
 
     var RegexBase = {};
 
-    RegexBase._init = function _init(_parent, _keeps, _cache) {
+    RegexBase._init = function _init(_parent) {
         this._current = '';
         this._last = '';
 
         this._parent = _parent || {};
-        this._keeps =  _keeps  || [];// for 'keep' method
-        this._cache =  _cache  || {};
+        this._keeps =  this._parent._keeps  || [];
+        this._cache =  this._parent._cache  || {};
 
         makeFlags(this);
     };
@@ -62,7 +62,7 @@
         this._purgeLast();
 
         var newSegment = Object.create(RegexGroup);
-        newSegment._init(this, this._keeps, this._cache);
+        newSegment._init(this);
         return newSegment;
     };
 
@@ -135,7 +135,7 @@
         }
         else {
             var newFollowed = Object.create(RegexFollowedBy);
-            newFollowed._init(this, this._keeps, this._cache, false);
+            newFollowed._init(this, false);
             return newFollowed;
         }
     };
@@ -156,7 +156,7 @@
         }
         else {
             var newFollowed = Object.create(RegexFollowedBy);
-            newFollowed._init(this, this._keeps, this._cache, true);
+            newFollowed._init(this, true);
             return newFollowed;
         }
     };
@@ -173,7 +173,7 @@
         }
         else {
             var newSet = Object.create(RegexCharacterSet);
-            newSet._init(this, this._keeps, this._cache, false);
+            newSet._init(this, false);
             return newSet;
         }
     };
@@ -190,7 +190,7 @@
         }
         else {
             var newSet = Object.create(RegexCharacterSet);
-            newSet._init(this, this._keeps, this._cache, true);
+            newSet._init(this, true);
             return newSet;
         }
     };
@@ -199,7 +199,7 @@
         this._purgeLast();
 
         var newOr = Object.create(RegexOr);
-        newOr._init(this, this._keeps, this._cache);
+        newOr._init(this);
         return newOr;
     };
 
@@ -293,11 +293,12 @@
 
     var RegexCharacterSet = Object.create(RegexBase);
 
+    delete RegexCharacterSet.start;
     delete RegexCharacterSet.keep;
     delete RegexCharacterSet.repeat;
 
     RegexCharacterSet._init = function _init(_parent, _keeps, _cache, _excludeFlag) {
-        RegexBase._init.call(this, _parent, _keeps, _cache);
+        RegexBase._init.call(this, _parent);
         this._excludeFlag = _excludeFlag;
     };
 
@@ -322,7 +323,7 @@
     var RegexFollowedBy = Object.create(RegexBase);
 
     RegexFollowedBy._init = function _init(_parent, _keeps, _cache, _notFlag) {
-        RegexBase._init.call(this, _parent, _keeps, _cache);
+        RegexBase._init.call(this, _parent);
         this._notFlag = _notFlag;
     };
 
