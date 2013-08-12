@@ -331,7 +331,7 @@
     delete RegexCharacterSet.keep;
     delete RegexCharacterSet.repeat;
 
-    RegexCharacterSet._init = function _init(_parent, _keeps, _cache, _excludeFlag) {
+    RegexCharacterSet._init = function _init(_parent, _excludeFlag) {
         RegexBase._init.call(this, _parent);
         this._excludeFlag = _excludeFlag;
     };
@@ -356,7 +356,7 @@
 
     var RegexFollowedBy = Object.create(RegexBase);
 
-    RegexFollowedBy._init = function _init(_parent, _keeps, _cache, _notFlag) {
+    RegexFollowedBy._init = function _init(_parent, _notFlag) {
         RegexBase._init.call(this, _parent);
         this._notFlag = _notFlag;
     };
@@ -377,8 +377,8 @@
 
     RegexMacro._apply = function _apply(node) {
         if (this._numPurged > 1) {
-            node._setLast('(?:' + this._current + ')');
-            node._state = STATE_NONCAPTURE;
+            node._setLast(this._current);   // TODO
+            node._state = STATE_NONCAPTURE; // TODO
         }
         else {
             node._setLast(this._current);
