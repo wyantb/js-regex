@@ -42,6 +42,7 @@
     RegexBase._init = function _init(_parent) {
         this._current = '';
         this._last = '';
+        this._state = STATE_EMPTY;
 
         this._parent = _parent || {};
         this._keeps =  this._parent._keeps  || [];
@@ -72,12 +73,14 @@
     RegexBase.literal = function literal(character) {
         this._purgeLast();
 
+        this._state = STATE_LITERAL;
         return this._setLast(getLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
         this._purgeLast();
 
+        this._state = string.length > 1 ? STATE_LITERALS : STATE_LITERAL;
         return this._setLast(getLiterals(string));
     };
 
@@ -85,7 +88,8 @@
         this._purgeLast();
 
         var mac = this._getMacro(name);
-        return this._setLast(mac._current);
+        mac._apply(this);
+        return this;
     };
 
     RegexBase.start = function start() {
@@ -365,6 +369,28 @@
     };
 
     var RegexMacro = Object.create(RegexBase);
+
+    RegexMacro._init = function _init(_parent) {
+        RegexBase._init.call(this, _parent);
+        this._numPurged = 0;
+    };
+
+    RegexMacro._apply = function _apply(node) {
+        if (this._numPurged > 1) {
+            node._setLast('(?:' + this._current + ')');
+            node._state = STATE_NONCAPTURE;
+        }
+        else {
+            node._setLast(this._current);
+            node._state = this._state;
+        }
+    };
+
+    RegexMacro._purgeLast = function _purgeLast() {
+        RegexBase._purgeLast.call(this);
+        this._numPurged += 1;
+    };
+
     RegexMacro.close = function close() {
         this._purgeLast();
         return this._parent;
@@ -455,6 +481,16 @@
         regex.lastIndex = 0;
         return regex;
     }
+
+    var STATE_EMPTY = 'STATE_EMPTY';
+    var STATE_LITERAL = 'STATE_LITERAL';
+    var STATE_LITERALS = 'STATE_LITERALS';
+    var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
+    //var STATE_CAPTURE = 'STATE_CAPTURE';
+    //var STATE_REPEAT = 'STATE_REPEAT';
+    //var STATE_FOLLOWEDBY = 'STATE_FoLLOWEDBY';
+    //var STATE_ANY = 'STATE_ANY';
+    //var STATE_OR = 'STATE_OR';
 
     function lastWasCaptureGroup(node) {
         return node._getLast().indexOf('(') === 0 && node._getLast().indexOf('(?:') !== 0;
