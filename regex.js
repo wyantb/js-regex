@@ -15,8 +15,26 @@
 
     var regex = function () {
         var root = Object.create(RegexRoot);
-        root._init();
+        root._init(regex);
         return root;
+    };
+
+    regex._macros = {};
+    regex._getMacro = function _getMacro(name) {
+        if (!regex._macros[name]) {
+            throw new Error('Attempted to use macro ' + name + ', which doesn\'t exist.');
+        }
+
+        return regex._macros[name];
+    };
+
+    // Can use regex() or regex.create()
+    regex.create = regex;
+
+    regex.addMacro = function addMacro(name) {
+        var macro = regex._macros[name] = Object.create(RegexMacro);
+        macro._init(regex);
+        return macro;
     };
 
     var RegexBase = {};
@@ -28,8 +46,13 @@
         this._parent = _parent || {};
         this._keeps =  this._parent._keeps  || [];
         this._cache =  this._parent._cache  || {};
+        this._macros = {};
 
         makeFlags(this);
+    };
+
+    RegexBase._getMacro = function _getMacro(name) {
+        return this._macros[name] || this._parent._getMacro(name);
     };
 
     RegexBase._purgeLast = function _purgeLast() {
@@ -56,6 +79,13 @@
         this._purgeLast();
 
         return this._setLast(getLiterals(string));
+    };
+
+    RegexBase.macro = function macro(name) {
+        this._purgeLast();
+
+        var mac = this._getMacro(name);
+        return this._setLast(mac._current);
     };
 
     RegexBase.start = function start() {
@@ -334,11 +364,20 @@
         return this._parent._setLast(notFlags + this._current + ')');
     };
 
+    var RegexMacro = Object.create(RegexBase);
+    RegexMacro.close = function close() {
+        this._purgeLast();
+        return this._parent;
+    };
+
     // Represents the root object created by executing regex()
     var RegexRoot = Object.create(RegexBase);
 
-    // TODO .macro()     -- to create a macro
-    // TODO .macro(name) -- to reference already created macro
+    RegexRoot.addMacro = function addMacro(name) {
+        var macro = regex._macros[name] = Object.create(RegexMacro);
+        macro._init(this);
+        return macro;
+    };
 
     RegexRoot.test = function test(string) {
         this._purgeLast();

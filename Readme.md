@@ -114,6 +114,37 @@ regex()
     .peek();            // Will return 'abc|def'
 ```
 
+### Macros
+
+```javascript
+regex.create(); // Alternate form of regex()
+
+regex
+    .addMacro('any-quote') // Adding a global macro for single or double quote
+        .any('\'"')
+    .close()
+    .create()
+        .macro('any-quote')
+        .f.dot()
+          .repeat()
+        .macro('any-quote')
+        .peek();           // Will return '['"].*['"]'
+
+regex
+    .addMacro('quote')
+        .any('\'"')
+    .close()
+    .create()
+        .addMacro('quote') // Local macros override global ones
+            .literal('"')  //  Here, restricting to double quote only
+        .close()
+        .macro('quote')
+        .f.dot()
+          .repeat()
+        .macro('quote')
+        .peek();           // Will return '".*"'
+```
+
 ### Followed By
 
 ```javascript
