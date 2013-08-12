@@ -47,7 +47,7 @@ regex()
 ```javascript
 regex()
     .literals('aaa')
-      .keep()
+      .capture()
     .peek();        // Will return '(aaa)'
 ```
 
@@ -193,7 +193,7 @@ Probably buggy.
 regex()
     .literals('bbb')
     .literals('aaa')
-      .keep('named')
+      .capture('named')
     .literals('bbb')
     .replace('aaa', function (groups) {
         console.log(groups.named);     // Will print 'aaa'

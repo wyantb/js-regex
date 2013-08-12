@@ -33,10 +33,10 @@ test('Readme examples', function () {
 
     result = regex()
         .literals('aaa')
-          .keep()
+          .capture()
         .peek();
 
-    strictEqual(result, '(aaa)', 'keep()');
+    strictEqual(result, '(aaa)', 'capture()');
 
     result = regex()
         .literals('aaa')

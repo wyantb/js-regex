@@ -45,7 +45,7 @@
         this._state = STATE_EMPTY;
 
         this._parent = _parent || {};
-        this._keeps =  this._parent._keeps  || [];
+        this._captures =  this._parent._captures  || [];
         this._cache =  this._parent._cache  || {};
         this._macros = {};
 
@@ -100,30 +100,31 @@
         return newSegment;
     };
 
-    RegexBase.keep = function keep(name) {
+    RegexBase.capture = function capture(name) {
         if (arguments.length !== 0 && typeof name !== 'string') {
-            throw new Error('named error groups for keep must be a String');
+            throw new Error('named error groups for capture must be a String');
         }
         if (this._last === '') {
             throw new Error('nothing to capture');
         }
 
         if (!name) {
-            name = String(this._keeps.length + 1);
+            name = String(this._captures.length + 1);
         }
 
         if (lastWasCaptureGroup(this)) {
             // This new group will appear before the current one, so we'll have to shuffle them
-            var lastIndex = this._keeps.length - 1;
-            var lastGroupName = this._keeps[lastIndex];
-            this._keeps[lastIndex] = name;
-            this._keeps.push(lastGroupName);
+            var lastIndex = this._captures.length - 1;
+            var lastGroupName = this._captures[lastIndex];
+            this._captures[lastIndex] = name;
+            this._captures.push(lastGroupName);
         }
         else {
-            // We can just add another group to keep with
-            this._keeps.push(name);
+            // We can just add another group to capture with
+            this._captures.push(name);
         }
 
+        this._state = STATE_CAPTURE;
         return this._setLast('(' + this._getLast() + ')');
     };
 
@@ -328,7 +329,7 @@
     var RegexCharacterSet = Object.create(RegexBase);
 
     delete RegexCharacterSet.start;
-    delete RegexCharacterSet.keep;
+    delete RegexCharacterSet.capture;
     delete RegexCharacterSet.repeat;
 
     RegexCharacterSet._init = function _init(_parent, _excludeFlag) {
@@ -417,7 +418,7 @@
         }
 
         // TODO callback can be a string or function
-        // TODO can handle keep never getting called
+        // TODO can handle capture never getting called
 
         this._purgeLast();
 
@@ -428,7 +429,7 @@
             var callbackHash = {};
 
             for (var i = 0, len = args.length; i < len; i++) {
-                var name = node._keeps[i];
+                var name = node._captures[i];
                 callbackHash[name] = args[i];
             }
 
@@ -486,7 +487,7 @@
     var STATE_LITERAL = 'STATE_LITERAL';
     var STATE_LITERALS = 'STATE_LITERALS';
     var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
-    //var STATE_CAPTURE = 'STATE_CAPTURE';
+    var STATE_CAPTURE = 'STATE_CAPTURE';
     //var STATE_REPEAT = 'STATE_REPEAT';
     //var STATE_FOLLOWEDBY = 'STATE_FoLLOWEDBY';
     //var STATE_ANY = 'STATE_ANY';
