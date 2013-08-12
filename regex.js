@@ -57,8 +57,15 @@
     };
 
     RegexBase._purgeLast = function _purgeLast() {
-        this._current += this._last;
+        var newPortion = this._last;
+        if (this._state === STATE_OR) {
+            newPortion = '(?:' + newPortion + ')';
+        }
+        this._current += newPortion;
         this._last = '';
+
+        this._state = this._newState;
+        this._newState = STATE_EMPTY;
     };
 
     RegexBase._setLast = function _setLast(last) {
@@ -71,16 +78,16 @@
     };
 
     RegexBase.literal = function literal(character) {
+        this._newState = STATE_CHARACTER;
         this._purgeLast();
 
-        this._state = STATE_LITERAL;
         return this._setLast(getLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
+        this._newState = string.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
         this._purgeLast();
 
-        this._state = string.length > 1 ? STATE_LITERALS : STATE_LITERAL;
         return this._setLast(getLiterals(string));
     };
 
@@ -104,31 +111,30 @@
         if (arguments.length !== 0 && typeof name !== 'string') {
             throw new Error('named error groups for capture must be a String');
         }
-        if (this._last === '') {
+        if (this._getLast() === '') {
             throw new Error('nothing to capture');
+        }
+        if (this._state === STATE_CAPTURE) {
+            throw new Error('capturing twice in a row is pointless');
         }
 
         if (!name) {
             name = String(this._captures.length + 1);
         }
 
-        if (lastWasCaptureGroup(this)) {
-            // This new group will appear before the current one, so we'll have to shuffle them
-            var lastIndex = this._captures.length - 1;
-            var lastGroupName = this._captures[lastIndex];
-            this._captures[lastIndex] = name;
-            this._captures.push(lastGroupName);
-        }
-        else {
-            // We can just add another group to capture with
-            this._captures.push(name);
-        }
-
+        this._captures.push(name);
         this._state = STATE_CAPTURE;
         return this._setLast('(' + this._getLast() + ')');
     };
 
     RegexBase.repeat = function repeat(min, max) {
+        if (this._getLast() === '') {
+            throw new Error('nothing to repeat');
+        }
+        if (this._state === STATE_REPEAT) {
+            throw new Error('repeating twice in a row will break JS RegExp');
+        }
+
         if (lastWasMulticharacter(this)) {
             this._setLast('(?:' + this._getLast() + ')');
         }
@@ -151,6 +157,7 @@
             this._setLast(this._getLast() + '{' + min + ',' + max + '}');
         }
 
+        this._state = STATE_REPEAT;
         return this;
     };
 
@@ -231,10 +238,12 @@
     };
 
     RegexBase.or = function or() {
+        var mustAddNonCapture = this._state !== STATE_EMPTY;
+
         this._purgeLast();
 
         var newOr = Object.create(RegexOr);
-        newOr._init(this);
+        newOr._init(this, mustAddNonCapture);
         return newOr;
     };
 
@@ -260,9 +269,8 @@
         function addFlag(flag) {
             return function flagFn() {
                 node._purgeLast();
-                node._setLast(flag);
-
-                return node;
+                node._state = STATE_CHARACTER;
+                return node._setLast(flag);
             };
         }
 
@@ -277,9 +285,8 @@
             }
 
             node._purgeLast();
-            node._setLast(newFlags);
-
-            return node;
+            node._state = flagsToAdd.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
+            return node._setLast(newFlags);
         };
 
         flags.start =                    addFlag('^');
@@ -320,10 +327,7 @@
     var RegexGroup = Object.create(RegexBase);
     RegexGroup.close = function close() {
         this._purgeLast();
-
-        this._parent._setLast(this._current);
-
-        return this._parent;
+        return this._parent._setLast(this._current);
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
@@ -346,13 +350,34 @@
 
     var RegexOr = Object.create(RegexGroup);
 
+    RegexOr._init = function _init(_parent, _needsGrouping) {
+        RegexGroup._init.call(this, _parent);
+        this._isActuallyOr = false;
+        this._needsGrouping = _needsGrouping;
+    };
+
     RegexOr._purgeLast = function _purgeLast() {
         if (this._current) {
+            this._isActuallyOr = true;
             this._current += '|';
         }
         RegexBase._purgeLast.call(this);
 
         return this;
+    };
+
+    RegexOr.close = function close() {
+        this._purgeLast();
+
+        var current = this._current;
+        if (this._needsGrouping && this._isActuallyOr) {
+            current = '(?:' + current + ')';
+        }
+        else if (this._isActuallyOr) {
+            this._parent._state = STATE_OR;
+        }
+
+        return this._parent._setLast(current);
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
@@ -484,14 +509,14 @@
     }
 
     var STATE_EMPTY = 'STATE_EMPTY';
-    var STATE_LITERAL = 'STATE_LITERAL';
-    var STATE_LITERALS = 'STATE_LITERALS';
+    var STATE_CHARACTER = 'STATE_CHARACTER';
+    var STATE_CHARACTERS = 'STATE_CHARACTERS';
     var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
     var STATE_CAPTURE = 'STATE_CAPTURE';
-    //var STATE_REPEAT = 'STATE_REPEAT';
-    //var STATE_FOLLOWEDBY = 'STATE_FoLLOWEDBY';
+    var STATE_REPEAT = 'STATE_REPEAT';
+    var STATE_OR = 'STATE_OR';
+    //var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     //var STATE_ANY = 'STATE_ANY';
-    //var STATE_OR = 'STATE_OR';
 
     function lastWasCaptureGroup(node) {
         return node._getLast().indexOf('(') === 0 && node._getLast().indexOf('(?:') !== 0;
