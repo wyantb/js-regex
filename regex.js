@@ -67,7 +67,7 @@
         this._current += newPortion;
         this._last = '';
 
-        ++(this._numPurged);
+        this._numPurged++;
         this._states[this._newState] = true;
         this._state = this._newState;
         this._newState = STATE_EMPTY;
@@ -222,6 +222,7 @@
             throw new Error('if specifying arguments for any(), must be a String of literals');
         }
 
+        this._newState = STATE_ANY;
         this._purgeLast();
 
         if (arguments.length) {
@@ -239,6 +240,7 @@
             throw new Error('if specifying arguments for none(), must be a String of literals');
         }
 
+        this._newState = STATE_ANY;
         this._purgeLast();
 
         if (arguments.length) {
@@ -282,8 +284,8 @@
     function makeFlags(node) {
         function addFlag(flag) {
             return function flagFn() {
+                node._newState = STATE_CHARACTER;
                 node._purgeLast();
-                node._state = STATE_CHARACTER;
                 return node._setLast(flag);
             };
         }
@@ -298,8 +300,8 @@
                 newFlags += flagCharacters[newFlag];
             }
 
+            node._newState = flagsToAdd.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
             node._purgeLast();
-            node._state = flagsToAdd.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
             return node._setLast(newFlags);
         };
 
@@ -345,7 +347,7 @@
         if (this._states[STATE_OR]) {
             this._parent._state = STATE_OR;
         }
-        else if (this._states[STATE_CHARACTERS] || this._numPurges > 1) {
+        else if (this._states[STATE_CHARACTERS] || this._numPurged > 2) {
             this._parent._state = STATE_CHARACTERS;
         }
 
@@ -527,7 +529,7 @@
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_OR = 'STATE_OR';
     //var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
-    //var STATE_ANY = 'STATE_ANY';
+    var STATE_ANY = 'STATE_ANY';
 
     function lastWasCaptureGroup(node) {
         return node._getLast().indexOf('(') === 0 && node._getLast().indexOf('(?:') !== 0;
