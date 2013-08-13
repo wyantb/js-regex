@@ -6,7 +6,7 @@
  * @license   http://opensource.org/licenses/MIT
 **/
 
-(function (undefined) {
+(function (root, undefined) {
     'use strict';
 
     // -----------------------
@@ -527,28 +527,17 @@
     var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     var STATE_ANY = 'STATE_ANY';
 
-    function lastWasCaptureGroup(node) {
-        return node._getLast().indexOf('(') === 0 && node._getLast().indexOf('(?:') !== 0;
-    }
-
-    function lastWasChoice(node) {
-        return node._getLast().indexOf('[') === 0;
-    }
-
-    function lastWasMulticharacter(node) {
-        return !lastWasCaptureGroup(node) && !lastWasChoice(node) &&
-            node._getLast().length >= 2 &&
-            // special character literal:
-            !(node._getLast().indexOf('\\') === 0 && node._getLast().length === 2);
-    }
-
     /*global define:true */
     if (typeof define === 'function' && define.amd) {
         define([], regex);
     }
+    /*global module:true */
+    else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = regex;
+    }
     else {
-        window.regex = regex;
+        root.regex = regex;
     }
 
-}());
+}(this));
 
