@@ -57,7 +57,7 @@ test('literals before and after', function () {
 
 test('literals before and after, but no wrap needed', function () {
 
-    var result
+    var result;
 
     result = regex()
         .literal('a')

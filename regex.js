@@ -42,7 +42,10 @@
     RegexBase._init = function _init(_parent) {
         this._current = '';
         this._last = '';
+
         this._state = STATE_EMPTY;
+        this._states = {};
+        this._numPurged = 0;
 
         this._parent = _parent || {};
         this._captures =  this._parent._captures  || [];
@@ -64,6 +67,8 @@
         this._current += newPortion;
         this._last = '';
 
+        ++(this._numPurged);
+        this._states[this._newState] = true;
         this._state = this._newState;
         this._newState = STATE_EMPTY;
     };
@@ -111,7 +116,7 @@
         if (arguments.length !== 0 && typeof name !== 'string') {
             throw new Error('named error groups for capture must be a String');
         }
-        if (this._getLast() === '') {
+        if (this._getLast() === '' || this._state === STATE_EMPTY) {
             throw new Error('nothing to capture');
         }
         if (this._state === STATE_CAPTURE) {
@@ -128,15 +133,18 @@
     };
 
     RegexBase.repeat = function repeat(min, max) {
-        if (this._getLast() === '') {
+        if (this._getLast() === '' || this._state === STATE_EMPTY) {
             throw new Error('nothing to repeat');
         }
         if (this._state === STATE_REPEAT) {
             throw new Error('repeating twice in a row will break JS RegExp');
         }
 
-        if (lastWasMulticharacter(this)) {
+        switch (this._state) {
+        case STATE_CHARACTERS:
+        case STATE_OR:
             this._setLast('(?:' + this._getLast() + ')');
+            break;
         }
 
         if (!arguments.length) {
@@ -166,8 +174,11 @@
             throw new Error('if specifying arguments for followedBy(), must be a String of literals');
         }
 
-        if (lastWasMulticharacter(this)) {
+        switch (this._state) {
+        case STATE_CHARACTERS:
+        case STATE_OR:
             this._setLast('(?:' + this._getLast() + ')');
+            break;
         }
 
         this._purgeLast();
@@ -187,8 +198,11 @@
             throw new Error('if specifying arguments for notFollowedBy(), must be a String of literals');
         }
 
-        if (lastWasMulticharacter(this)) {
+        switch (this._state) {
+        case STATE_CHARACTERS:
+        case STATE_OR:
             this._setLast('(?:' + this._getLast() + ')');
+            break;
         }
 
         this._purgeLast();
@@ -327,6 +341,14 @@
     var RegexGroup = Object.create(RegexBase);
     RegexGroup.close = function close() {
         this._purgeLast();
+
+        if (this._states[STATE_OR]) {
+            this._parent._state = STATE_OR;
+        }
+        else if (this._states[STATE_CHARACTERS] || this._numPurges > 1) {
+            this._parent._state = STATE_CHARACTERS;
+        }
+
         return this._parent._setLast(this._current);
     };
 
@@ -361,7 +383,7 @@
             this._isActuallyOr = true;
             this._current += '|';
         }
-        RegexBase._purgeLast.call(this);
+        RegexGroup._purgeLast.call(this);
 
         return this;
     };
@@ -395,26 +417,15 @@
     };
 
     var RegexMacro = Object.create(RegexBase);
-
-    RegexMacro._init = function _init(_parent) {
-        RegexBase._init.call(this, _parent);
-        this._numPurged = 0;
-    };
-
     RegexMacro._apply = function _apply(node) {
         if (this._numPurged > 1) {
             node._setLast(this._current);   // TODO
-            node._state = STATE_NONCAPTURE; // TODO
+            //node._state = STATE_NONCAPTURE; // TODO
         }
         else {
             node._setLast(this._current);
             node._state = this._state;
         }
-    };
-
-    RegexMacro._purgeLast = function _purgeLast() {
-        RegexBase._purgeLast.call(this);
-        this._numPurged += 1;
     };
 
     RegexMacro.close = function close() {
@@ -511,7 +522,7 @@
     var STATE_EMPTY = 'STATE_EMPTY';
     var STATE_CHARACTER = 'STATE_CHARACTER';
     var STATE_CHARACTERS = 'STATE_CHARACTERS';
-    var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
+    //var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_OR = 'STATE_OR';
