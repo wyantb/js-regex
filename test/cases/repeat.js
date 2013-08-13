@@ -164,3 +164,72 @@ test('preceded by every token', function () {
     strictEqual(result, '[^\\dab]*[^abc]*', 'double usage of none');
 
 });
+
+test('with macros', function () {
+
+    var result;
+
+    regex.addMacro('lits')
+            .literals('lits')
+        .close();
+
+    result = regex()
+        .macro('lits')
+        .repeat()
+        .peek();
+
+    strictEqual(result, '(?:lits)*', 'simple literals macro');
+
+    regex.addMacro('lit')
+            .literal('l')
+        .close();
+
+    result = regex()
+        .macro('lit')
+        .repeat()
+        .peek();
+
+    strictEqual(result, 'l*', 'simple literal macro');
+
+    result = regex()
+        .start()
+            .macro('lits')
+            .macro('lit')
+            .macro('lits')
+        .close()
+        .repeat()
+        .peek();
+
+    strictEqual(result, '(?:litsllits)*', 'combo macros with start()');
+
+    regex.addMacro('or')
+            .or()
+                .literals('abc')
+                .literals('def')
+            .close()
+        .close();
+
+    result = regex()
+        .macro('or')
+        .repeat()
+        .macro('lits')
+        .repeat()
+        .peek();
+
+    strictEqual(result, '(?:abc|def)*(?:lits)*', 'or() and lits macro combined');
+
+    regex.addMacro('followedBy')
+            .literals('abc')
+            .followedBy()
+                .literals('def')
+            .close()
+        .close();
+
+    result = regex()
+        .macro('followedBy')
+        .repeat()
+        .peek();
+
+    strictEqual(result, '(?:(?:abc)(?=def))*', 'followedBy() based macro');
+
+});

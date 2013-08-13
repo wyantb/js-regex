@@ -181,6 +181,7 @@
             break;
         }
 
+        this._newState = STATE_FOLLOWEDBY;
         this._purgeLast();
 
         if (arguments.length) {
@@ -205,6 +206,7 @@
             break;
         }
 
+        this._newState = STATE_FOLLOWEDBY;
         this._purgeLast();
 
         if (arguments.length) {
@@ -341,17 +343,20 @@
     };
 
     var RegexGroup = Object.create(RegexBase);
-    RegexGroup.close = function close() {
-        this._purgeLast();
-
+    RegexGroup._apply = function _apply(node) {
         if (this._states[STATE_OR]) {
-            this._parent._state = STATE_OR;
+            node._state = STATE_OR;
         }
         else if (this._states[STATE_CHARACTERS] || this._numPurged > 2) {
-            this._parent._state = STATE_CHARACTERS;
+            node._state = STATE_CHARACTERS;
         }
 
-        return this._parent._setLast(this._current);
+        return node._setLast(this._current);
+    };
+
+    RegexGroup.close = function close() {
+        this._purgeLast();
+        return this._apply(this._parent);
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
@@ -414,21 +419,13 @@
     RegexFollowedBy.close = function close() {
         this._purgeLast();
 
+        this._parent._state = STATE_FOLLOWEDBY;
+
         var notFlags = this._notFlag ? '(?!' : '(?=';
         return this._parent._setLast(notFlags + this._current + ')');
     };
 
-    var RegexMacro = Object.create(RegexBase);
-    RegexMacro._apply = function _apply(node) {
-        if (this._numPurged > 1) {
-            node._setLast(this._current);   // TODO
-            //node._state = STATE_NONCAPTURE; // TODO
-        }
-        else {
-            node._setLast(this._current);
-            node._state = this._state;
-        }
-    };
+    var RegexMacro = Object.create(RegexGroup);
 
     RegexMacro.close = function close() {
         this._purgeLast();
@@ -524,11 +521,10 @@
     var STATE_EMPTY = 'STATE_EMPTY';
     var STATE_CHARACTER = 'STATE_CHARACTER';
     var STATE_CHARACTERS = 'STATE_CHARACTERS';
-    //var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_OR = 'STATE_OR';
-    //var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
+    var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     var STATE_ANY = 'STATE_ANY';
 
     function lastWasCaptureGroup(node) {
