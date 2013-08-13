@@ -7,6 +7,13 @@ Why?
 Because if you're using RegExp, and your problem isn't solved yet, you're not using
 enough RegExp.
 
+Tests
+-----
+
+In addition to the usage documented below, with a matching test suite [here](https://github.com/wyantb/js-regex/blob/master/test/cases/readme_cases.js), there's a fair number of other test cases [here](https://github.com/wyantb/js-regex/tree/master/test/cases).
+
+Although there's a small number of testcase files right now, they actually cover the bases of the library and the combinations of methods you can invoke pretty well; please check them out if you're at all interested.
+
 Usage
 -----
 
