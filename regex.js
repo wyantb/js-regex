@@ -59,9 +59,9 @@
         return this._macros[name] || this._parent._getMacro(name);
     };
 
-    RegexBase._purgeLast = function _purgeLast() {
+    RegexBase._purgeLast = function _purgeLast(_noPurgeOr) {
         var newPortion = this._last;
-        if (this._state === STATE_OR) {
+        if (!_noPurgeOr && this._state === STATE_OR) {
             newPortion = '(?:' + newPortion + ')';
         }
         this._current += newPortion;
@@ -166,6 +166,26 @@
         }
 
         this._state = STATE_REPEAT;
+        return this;
+    };
+
+    RegexBase.optional = function optional() {
+        if (this._getLast() === '' || this._state === STATE_EMPTY) {
+            throw new Error('nothing to mark as optional');
+        }
+        if (this._state === STATE_OPTIONAL) {
+            throw new Error('marking as optional twice in a row will break JS RegExp');
+        }
+
+        switch (this._state) {
+        case STATE_CHARACTERS:
+        case STATE_OR:
+            this._setLast('(?:' + this._getLast() + ')');
+            break;
+        }
+
+        this._setLast(this._getLast() + '?');
+        this._state = STATE_OPTIONAL;
         return this;
     };
 
@@ -344,18 +364,22 @@
 
     var RegexGroup = Object.create(RegexBase);
     RegexGroup._apply = function _apply(node) {
-        if (this._states[STATE_OR]) {
+        if (this._state === STATE_OR) {
             node._state = STATE_OR;
         }
         else if (this._states[STATE_CHARACTERS] || this._numPurged > 2) {
             node._state = STATE_CHARACTERS;
+        }
+        else {
+            node._state = this._state;
         }
 
         return node._setLast(this._current);
     };
 
     RegexGroup.close = function close() {
-        this._purgeLast();
+        this._newState = this._state;
+        this._purgeLast(true);
         return this._apply(this._parent);
     };
 
@@ -371,7 +395,7 @@
     };
 
     RegexCharacterSet.close = function close() {
-        this._purgeLast();
+        this._purgeLast(true);
 
         var setFlags = this._excludeFlag ? '[^' : '[';
         return this._parent._setLast(setFlags + this._current + ']');
@@ -428,7 +452,8 @@
     var RegexMacro = Object.create(RegexGroup);
 
     RegexMacro.close = function close() {
-        this._purgeLast();
+        this._newState = this._state;
+        this._purgeLast(true);
         return this._parent;
     };
 
@@ -487,7 +512,7 @@
     // Helpers
     // -----------------------
 
-    var specialCharacters = '\\^$*+?(){}[]|';
+    var specialCharacters = '\\^$*+?(){}[]|.';
 
     function getLiteral(character) {
         if (typeof character !== 'string') {
@@ -526,6 +551,7 @@
     var STATE_OR = 'STATE_OR';
     var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     var STATE_ANY = 'STATE_ANY';
+    var STATE_OPTIONAL = 'STATE_OPTIONAL';
 
     /*global define:true */
     if (typeof define === 'function' && define.amd) {
