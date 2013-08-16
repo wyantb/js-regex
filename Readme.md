@@ -166,6 +166,45 @@ regex()
     .peek();               // Will return '(?:ccc)(?!ddd)
 ```
 
+Complicated Regexes
+-------------------
+
+### Example 1
+
+How quickly can you figure out what this is supposed to represent?
+
+```javascript
+regex()
+    .addMacro('0-255')
+        .or()
+            .start()
+                .literals('25')
+                .anyFrom('0', '5')
+            .close()
+            .start()
+                .literal('2')
+                .anyFrom('0', '4')
+                .anyFrom('0', '9')
+            .close()
+            .start()
+                .any('01').optional()
+                .anyFrom('0', '9')
+                .anyFrom('0', '9').optional()
+            .close()
+        .close()
+    .close()
+    .macro('0-255').capture()
+    .literal('.')
+    .macro('0-255').capture()
+    .literal('.')
+    .macro('0-255').capture()
+    .literal('.')
+    .macro('0-255').capture()
+    .peek();
+```
+
+(Hint: it's described [here](http://www.regular-expressions.info/examples.html), in the fourth section on the page.)
+
 Experimental Methods
 --------------------
 

@@ -3,7 +3,7 @@
 
 module('Readme examples');
 
-test('Readme examples', function () {
+test('API Demonstration', function () {
 
     var result;
 
@@ -140,3 +140,42 @@ test('Readme examples', function () {
     strictEqual(result, '(?:ccc)(?!ddd)', 'notFollowedBy()');
 
 });
+
+test('Complex Examples', function () {
+
+    var result = '';
+
+    result = regex()
+        .addMacro('0-255')
+            .or()
+                .start()
+                    .literals('25')
+                    .anyFrom('0', '5')
+                .close()
+                .start()
+                    .literal('2')
+                    .anyFrom('0', '4')
+                    .anyFrom('0', '9')
+                .close()
+                .start()
+                    .any('01').optional()
+                    .anyFrom('0', '9')
+                    .anyFrom('0', '9').optional()
+                .close()
+            .close()
+        .close()
+        .macro('0-255').capture()
+        .literal('.')
+        .macro('0-255').capture()
+        .literal('.')
+        .macro('0-255').capture()
+        .literal('.')
+        .macro('0-255').capture()
+        .peek();
+
+    // http://www.regular-expressions.info/examples.html
+    var ipAddrRegex = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
+    strictEqual(result, ipAddrRegex);
+
+});
+

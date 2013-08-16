@@ -239,7 +239,20 @@
         }
     };
 
+    RegexBase.anyFrom = function anyFrom(firstChar, secondChar) {
+        if (typeof firstChar !== 'string' || typeof secondChar !== 'string') {
+            throw new Error('must specify two characters for anyFrom() method');
+        }
+
+        this._newState = STATE_ANY;
+        this._purgeLast();
+
+        // TODO -
+        return this._setLast('[' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
+    };
+
     RegexBase.any = function any(characters) {
+        // TODO -
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for any(), must be a String of literals');
         }
@@ -257,7 +270,20 @@
         }
     };
 
+    RegexBase.noneFrom = function noneFrom(firstChar, secondChar) {
+        if (typeof firstChar !== 'string' || typeof secondChart !== 'string') {
+            throw new Error('must specify two characters for noneFrom() method');
+        }
+
+        this._newState = STATE_ANY;
+        this._purgeLast();
+
+        // TODO -
+        return this._setLast('[^' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
+    };
+
     RegexBase.none = function none(characters) {
+        // TODO -
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for none(), must be a String of literals');
         }
@@ -385,6 +411,10 @@
 
     var RegexCharacterSet = Object.create(RegexBase);
 
+    delete RegexCharacterSet.noneFrom;
+    delete RegexCharacterSet.none;
+    delete RegexCharacterSet.anyFrom;
+    delete RegexCharacterSet.any;
     delete RegexCharacterSet.start;
     delete RegexCharacterSet.capture;
     delete RegexCharacterSet.repeat;
