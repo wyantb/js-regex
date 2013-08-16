@@ -24,7 +24,7 @@ test('basics', function () {
         .repeat(2, 2)
         .peek();
 
-    strictEqual(result, '(?:abc){2,2}');
+    strictEqual(result, '(?:abc){2}');
 
     result = regex()
         .literals('abc')

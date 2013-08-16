@@ -175,7 +175,77 @@ test('Complex Examples', function () {
 
     // http://www.regular-expressions.info/examples.html
     var ipAddrRegex = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
-    strictEqual(result, ipAddrRegex);
+    strictEqual(result, ipAddrRegex, 'IP Address Regex');
+
+    result = regex()
+        .addMacro('dept-prefix')
+            .or()
+                .literals('SH')
+                .literals('RE')
+                .literals('MF')
+            .close()
+        .close()
+        .addMacro('date')
+            .or()
+                .start()
+                    .literals('197')
+                    .anyFrom('1', '9')
+                .close()
+                .start()
+                    .literals('19')
+                    .any('89')
+                    .f.digit()
+                .close()
+                .start()
+                    .anyFrom('2', '9')
+                    .f.digit().repeat(3, 3)
+                .close()
+            .close()
+            .literal('-')
+            .or()
+                .start()
+                    .literal('0')
+                    .anyFrom('1', '9')
+                .close()
+                .start()
+                    .literal('1')
+                    .any('012')
+                .close()
+            .close()
+            .literal('-')
+            .or()
+                .start()
+                    .literal('0')
+                    .anyFrom('1', '9')
+                .close()
+                .start()
+                    .any('12')
+                    .f.digit()
+                .close()
+                .start()
+                    .literal('3')
+                    .any('01')
+                .close()
+            .close()
+        .close()
+        .addMacro('issuenum')
+            .notFollowedBy()
+                .literal('0')
+                .repeat(5, 5)
+            .close()
+            .f.digit()
+            .repeat(5, 5)
+        .close()
+        .macro('dept-prefix').capture()
+        .literal('-')
+        .macro('date').capture()
+        .literal('-')
+        .macro('issuenum').capture()
+        .peek();
+
+    var businessLogicRegex = '(SH|RE|MF)-((?:197[1-9]|19[89]\\d|[2-9]\\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\\d|3[01]))-((?!0{5})\\d{5})';
+
+    strictEqual(result, businessLogicRegex, 'Business-like logic regex');
 
 });
 

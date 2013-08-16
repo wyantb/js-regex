@@ -161,8 +161,11 @@
                 this._setLast(this._getLast() + '{' + min + ',}');
             }
         }
-        else {
+        else if (min !== max) {
             this._setLast(this._getLast() + '{' + min + ',' + max + '}');
+        }
+        else {
+            this._setLast(this._getLast() + '{' + min + '}');
         }
 
         this._state = STATE_REPEAT;
