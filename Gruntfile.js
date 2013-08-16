@@ -11,12 +11,15 @@ module.exports = function (grunt) {
         },
     });
 
-    grunt.registerTask('default', ['jshint', 'quick_node_check']);
-    //grunt.registerTask('default', ['jshint', 'qunit']);
+    grunt.registerTask('default', [
+        'jshint',
+        'qunit',
+        'quick_node_check'
+    ]);
 
-    //grunt.loadNpmTasks('grunt-contrib-qunit');
     grunt.loadTasks('tasks');
     grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-qunit');
 
 };
 
