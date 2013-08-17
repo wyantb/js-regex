@@ -7,22 +7,35 @@ test('API Demonstration', function () {
 
     var result;
 
+    //### Simple usage with peek()
+
     result = regex()
         .literals('abc')
         .peek();
 
     strictEqual(result, 'abc', 'Simple abc');
 
+    //### Never stop chaining!
+
+    var firstCall = false, secondCall = false;
+
     regex()
         .literals('abc')
         .call(function (curNode) {
+            firstCall = true;
             ok(this === curNode, 'call uses both this and first func arg');
             strictEqual(curNode.peek(), 'abc', 'Still just abc');
         })
         .literals('def')
         .call(function (curNode) {
+            secondCall = true;
             strictEqual(curNode.peek(), 'abcdef', 'Added def');
         });
+
+    ok(firstCall, 'Call was invoked');
+    ok(secondCall, 'Second call was invoked');
+
+    //### Special Flags
 
     result = regex()
         .f.digit()
@@ -30,6 +43,8 @@ test('API Demonstration', function () {
         .peek();
 
     strictEqual(result, '\\d\\s', 'Basic flags');
+
+    //### Capture Groups
 
     result = regex()
         .literals('aaa')
@@ -48,20 +63,24 @@ test('API Demonstration', function () {
 
     strictEqual(result, '(?:aaa){1,3}', 'repeat(1, 3)');
 
+    //### Simple Grouping
+
     result = regex()
         .sequence()
             .literals('aaa')
             .f.digit()
             .literals('bbb')
-        .close()
+        .endSequence()
           .repeat()
-        .peek();
+        .peek();            // Will return '(?:aaa\dbbb)*'
 
     strictEqual(result, '(?:aaa\\dbbb)*', 'Simple grouping');
 
+    //### Character Sets
+
     result = regex()
         .any('abcdefg')
-        .peek();
+        .peek();       // Will return '[abcdefg]'
 
     strictEqual(result, '[abcdefg]', 'any()');
 
@@ -69,8 +88,8 @@ test('API Demonstration', function () {
         .any()
             .literals('abc')
             .f.digit()
-        .close()
-        .peek();
+        .endAny()
+        .peek();            // Will return '[abc\d]'
 
     strictEqual(result, '[abc\\d]', 'any() with f.digit()');
 
@@ -78,64 +97,70 @@ test('API Demonstration', function () {
         .none()
             .literals('abc')
             .f.whitespace()
-        .close()
-        .peek();
+        .endNone()
+        .peek();            // Will return '[^abc\s]'
 
     strictEqual(result, '[^abc\\s]', 'none()');
+
+    //### Or
 
     result = regex()
         .or()
             .literals('abc')
             .literals('def')
-        .close()
-        .peek();
+        .endOr()
+        .peek();            // Will return 'abc|def'
 
     strictEqual(result, 'abc|def', 'or()');
 
-    result = regex.create();
+    result = regex.create(); // Alternate form of regex()
 
     ok(result, 'regex.create() returns something');
 
+    //### Macros
+
     result = regex
-        .addMacro('any-quote')
+        .addMacro('any-quote') // Adding a global macro for single or double quote
             .any('\'"')
-        .close()
+        .endMacro()
         .create()
             .macro('any-quote')
             .f.dot()
               .repeat()
             .macro('any-quote')
-            .peek();
+            .peek();           // Will return '['"].*['"]'
 
     strictEqual(result, '[\'"].*[\'"]', 'any-quote macro');
 
     result = regex
         .addMacro('quote')
             .any('\'"')
-        .close()
+        .endMacro()
         .create()
-            .addMacro('quote')
-                .literal('"')
-            .close()
+            .addMacro('quote') // Local macros override global ones
+                .literal('"')  //  Here, restricting to double quote only
+            .endMacro()
             .macro('quote')
             .f.dot()
               .repeat()
             .macro('quote')
-            .peek();
+            .peek();           // Will return '".*"'
 
     strictEqual(result, '".*"', 'local macros override global');
+
+    //### Followed By
 
     result = regex()
         .literals('aaa')
           .followedBy('bbb')
-        .peek();
+        .peek();            // Will return '(?:aaa)(?=bbb)'
 
     strictEqual(result, '(?:aaa)(?=bbb)', 'followedBy()');
 
     result = regex()
         .literals('ccc')
           .notFollowedBy('ddd')
-        .peek();
+        .peek();               // Will return '(?:ccc)(?!ddd)
 
     strictEqual(result, '(?:ccc)(?!ddd)', 'notFollowedBy()');
 
@@ -145,25 +170,27 @@ test('Complex Examples', function () {
 
     var result = '';
 
+    //### Example 1
+
     result = regex()
         .addMacro('0-255')
             .or()
                 .sequence()
                     .literals('25')
                     .anyFrom('0', '5')
-                .close()
+                .endSequence()
                 .sequence()
                     .literal('2')
                     .anyFrom('0', '4')
                     .anyFrom('0', '9')
-                .close()
+                .endSequence()
                 .sequence()
                     .any('01').optional()
                     .anyFrom('0', '9')
                     .anyFrom('0', '9').optional()
-                .close()
-            .close()
-        .close()
+                .endSequence()
+            .endOr()
+        .endMacro()
         .macro('0-255').capture()
         .literal('.')
         .macro('0-255').capture()
@@ -177,65 +204,67 @@ test('Complex Examples', function () {
     var ipAddrRegex = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
     strictEqual(result, ipAddrRegex, 'IP Address Regex');
 
+    //UNLISTED
+
     result = regex()
         .addMacro('dept-prefix')
             .or()
                 .literals('SH')
                 .literals('RE')
                 .literals('MF')
-            .close()
-        .close()
+            .endOr()
+        .endMacro()
         .addMacro('date')
             .or()
                 .sequence()
                     .literals('197')
                     .anyFrom('1', '9')
-                .close()
+                .endSequence()
                 .sequence()
                     .literals('19')
                     .any('89')
                     .f.digit()
-                .close()
+                .endSequence()
                 .sequence()
                     .anyFrom('2', '9')
                     .f.digit().repeat(3, 3)
-                .close()
-            .close()
+                .endSequence()
+            .endOr()
             .literal('-')
             .or()
                 .sequence()
                     .literal('0')
                     .anyFrom('1', '9')
-                .close()
+                .endSequence()
                 .sequence()
                     .literal('1')
                     .any('012')
-                .close()
-            .close()
+                .endSequence()
+            .endOr()
             .literal('-')
             .or()
                 .sequence()
                     .literal('0')
                     .anyFrom('1', '9')
-                .close()
+                .endSequence()
                 .sequence()
                     .any('12')
                     .f.digit()
-                .close()
+                .endSequence()
                 .sequence()
                     .literal('3')
                     .any('01')
-                .close()
-            .close()
-        .close()
+                .endSequence()
+            .endOr()
+        .endMacro()
         .addMacro('issuenum')
             .notFollowedBy()
                 .literal('0')
                 .repeat(5, 5)
-            .close()
+            .endNotFollowedBy()
             .f.digit()
             .repeat(5, 5)
-        .close()
+        .endMacro()
         .macro('dept-prefix').capture()
         .literal('-')
         .macro('date').capture()

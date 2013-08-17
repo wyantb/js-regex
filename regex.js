@@ -236,6 +236,7 @@
         else {
             var newFollowed = Object.create(RegexFollowedBy);
             newFollowed._init(this, false);
+            newFollowed.endFollowedBy = newFollowed.end;
             return newFollowed;
         }
     };
@@ -261,6 +262,7 @@
         else {
             var newFollowed = Object.create(RegexFollowedBy);
             newFollowed._init(this, true);
+            newFollowed.endNotFollowedBy = newFollowed.end;
             return newFollowed;
         }
     };
@@ -292,6 +294,7 @@
         else {
             var newSet = Object.create(RegexCharacterSet);
             newSet._init(this, false);
+            newSet.endAny = newSet.end;
             return newSet;
         }
     };
@@ -331,6 +334,7 @@
         else {
             var newSet = Object.create(RegexCharacterSet);
             newSet._init(this, true);
+            newSet.endNone = newSet.end;
             return newSet;
         }
     };
@@ -458,7 +462,7 @@
         return node._setLast(this._current);
     };
 
-    RegexGroup.close = function close() {
+    RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
         return this._closeAndApply(this._parent);
     };
 
@@ -487,7 +491,7 @@
         return this;
     };
 
-    RegexCharacterSet.close = function close() {
+    RegexCharacterSet.end = function end() {
         return this._closeAndApply(this._parent);
     };
 
@@ -509,7 +513,7 @@
         return this;
     };
 
-    RegexOr.close = function close() {
+    RegexOr.endOr = RegexOr.end = function end() {
         this._newState = this._state;
         this._purgeLast();
         this._parent._state = this._state;
@@ -533,7 +537,7 @@
         this._notFlag = _notFlag;
     };
 
-    RegexFollowedBy.close = function close() {
+    RegexFollowedBy.end = function end() {
         this._purgeLast();
 
         this._parent._state = STATE_FOLLOWEDBY;
@@ -544,7 +548,7 @@
 
     var RegexMacro = Object.create(RegexGroup);
 
-    RegexMacro.close = function close() {
+    RegexMacro.endMacro = RegexMacro.end = function end() {
         this._newState = this._state;
         this._purgeLast(true);
         return this._parent;

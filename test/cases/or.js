@@ -11,7 +11,7 @@ test('basic usage', function () {
         .or()
             .literals('abc')
             .literals('def')
-        .close()
+        .endOr()
         .peek();
 
     strictEqual(result, 'abc|def');
@@ -27,7 +27,7 @@ test('literals before and after', function () {
         .or()
             .literal('b')
             .literal('c')
-        .close()
+        .endOr()
         .peek();
 
     strictEqual(result, 'a(?:b|c)', 'before');
@@ -36,7 +36,7 @@ test('literals before and after', function () {
         .or()
             .literal('b')
             .literal('c')
-        .close()
+        .endOr()
         .literal('d')
         .peek();
 
@@ -47,7 +47,7 @@ test('literals before and after', function () {
         .or()
             .literal('b')
             .literal('c')
-        .close()
+        .endOr()
         .literal('d')
         .peek();
 
@@ -63,7 +63,7 @@ test('literals before and after, but no wrap needed', function () {
         .literal('a')
         .or()
             .literal('b')
-        .close()
+        .endOr()
         .peek();
 
     strictEqual(result, 'ab', 'lit before');
@@ -71,7 +71,7 @@ test('literals before and after, but no wrap needed', function () {
     result = regex()
         .or()
             .literal('b')
-        .close()
+        .endOr()
         .literal('c')
         .peek();
 
@@ -81,7 +81,7 @@ test('literals before and after, but no wrap needed', function () {
         .literal('a')
         .or()
             .literal('b')
-        .close()
+        .endOr()
         .literal('c')
         .peek();
 
@@ -96,7 +96,7 @@ test('capturing or()', function () {
         .literals('a')
         .or()
             .literals('bc')
-        .close()
+        .endOr()
         .capture()
         .peek();
 
@@ -107,7 +107,7 @@ test('capturing or()', function () {
         .or()
             .literals('bc')
             .literals('jk')
-        .close()
+        .endOr()
         .capture()
         .peek();
 

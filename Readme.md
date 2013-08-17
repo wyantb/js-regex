@@ -83,7 +83,7 @@ regex()
         .literals('aaa')
         .f.digit()
         .literals('bbb')
-    .close()
+    .endSequence()
       .repeat()
     .peek();            // Will return '(?:aaa\dbbb)*'
 ```
@@ -99,14 +99,14 @@ regex()
     .any()
         .literals('abc')
         .f.digit()
-    .close()
+    .endAny()
     .peek();            // Will return '[abc\d]'
 
 regex()
     .none()
         .literals('abc')
         .f.whitespace()
-    .close()
+    .endNone()
     .peek();            // Will return '[^abc\s]'
 ```
 
@@ -117,7 +117,7 @@ regex()
     .or()
         .literals('abc')
         .literals('def')
-    .close()
+    .endOr()
     .peek();            // Will return 'abc|def'
 ```
 
@@ -129,7 +129,7 @@ regex.create(); // Alternate form of regex()
 regex
     .addMacro('any-quote') // Adding a global macro for single or double quote
         .any('\'"')
-    .close()
+    .endMacro()
     .create()
         .macro('any-quote')
         .f.dot()
@@ -140,11 +140,11 @@ regex
 regex
     .addMacro('quote')
         .any('\'"')
-    .close()
+    .endMacro()
     .create()
         .addMacro('quote') // Local macros override global ones
             .literal('"')  //  Here, restricting to double quote only
-        .close()
+        .endMacro()
         .macro('quote')
         .f.dot()
           .repeat()
@@ -180,19 +180,19 @@ regex()
             .sequence()
                 .literals('25')
                 .anyFrom('0', '5')
-            .close()
+            .endSequence()
             .sequence()
                 .literal('2')
                 .anyFrom('0', '4')
                 .anyFrom('0', '9')
-            .close()
+            .endSequence()
             .sequence()
                 .any('01').optional()
                 .anyFrom('0', '9')
                 .anyFrom('0', '9').optional()
-            .close()
-        .close()
-    .close()
+            .endSequence()
+        .endOr()
+    .endMacro()
     .macro('0-255').capture()
     .literal('.')
     .macro('0-255').capture()

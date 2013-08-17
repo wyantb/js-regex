@@ -79,7 +79,7 @@ test('preceded by every token', function () {
     result = regex()
         .sequence()
             .literal('a')
-        .close()
+        .endSequence()
         .repeat()
         .peek();
 
@@ -89,7 +89,7 @@ test('preceded by every token', function () {
         .sequence()
             .literal('a')
             .literal('b')
-        .close()
+        .endSequence()
         .repeat()
         .peek();
 
@@ -101,8 +101,8 @@ test('preceded by every token', function () {
             .or()
                 .literals('abc')
                 .literals('abc')
-            .close()
-        .close()
+            .endOr()
+        .endSequence()
         .repeat()
         .peek();
 
@@ -113,8 +113,8 @@ test('preceded by every token', function () {
             .or()
                 .literals('abc')
                 .literals('bcd')
-            .close()
-        .close()
+            .endOr()
+        .endSequence()
         .repeat()
         .peek();
 
@@ -145,7 +145,7 @@ test('preceded by every token', function () {
         .any()
             .f.digit()
             .literals('ab')
-        .close()
+        .endAny()
         .repeat()
         .peek();
 
@@ -155,7 +155,7 @@ test('preceded by every token', function () {
         .none()
             .f.digit()
             .literals('ab')
-        .close()
+        .endNone()
         .repeat()
         .none('abc')
         .repeat()
@@ -171,7 +171,7 @@ test('with macros', function () {
 
     regex.addMacro('lits')
             .literals('lits')
-        .close();
+        .endMacro();
 
     result = regex()
         .macro('lits')
@@ -182,7 +182,7 @@ test('with macros', function () {
 
     regex.addMacro('lit')
             .literal('l')
-        .close();
+        .endMacro();
 
     result = regex()
         .macro('lit')
@@ -196,7 +196,7 @@ test('with macros', function () {
             .macro('lits')
             .macro('lit')
             .macro('lits')
-        .close()
+        .endSequence()
         .repeat()
         .peek();
 
@@ -206,8 +206,8 @@ test('with macros', function () {
             .or()
                 .literals('abc')
                 .literals('def')
-            .close()
-        .close();
+            .endOr()
+        .endMacro();
 
     result = regex()
         .macro('or')
@@ -222,8 +222,8 @@ test('with macros', function () {
             .literals('abc')
             .followedBy()
                 .literals('def')
-            .close()
-        .close();
+            .endFollowedBy()
+        .endMacro();
 
     result = regex()
         .macro('followedBy')
