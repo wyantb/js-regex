@@ -123,9 +123,17 @@
     RegexBase.seq = RegexBase.sequence = function sequence() {
         this._purgeLast();
 
-        var newSegment = Object.create(RegexGroup);
-        newSegment._init(this);
-        return newSegment;
+        if (!arguments.length) {
+            var newSegment = Object.create(RegexGroup);
+            newSegment._init(this);
+            return newSegment;
+        }
+        else {
+            var reBase = Object.create(RegexGroup);
+            reBase._init(this);
+            applyArgs(reBase, Array.prototype.slice.call(arguments, 0));
+            return reBase._closeAndApply(this);
+        }
     };
 
     RegexBase.capture = function capture(name) {
@@ -234,9 +242,8 @@
             return this._setLast('(?=' + getLiterals(string) + ')');
         }
         else {
-            var newFollowed = Object.create(RegexFollowedBy);
-            newFollowed._init(this, false);
-            newFollowed.endFollowedBy = newFollowed.end;
+            var newFollowed = Object.create(RegexIsFollowedBy);
+            newFollowed._init(this);
             return newFollowed;
         }
     };
@@ -260,9 +267,8 @@
             return this._setLast('(?!' + getLiterals(string) + ')');
         }
         else {
-            var newFollowed = Object.create(RegexFollowedBy);
-            newFollowed._init(this, true);
-            newFollowed.endNotFollowedBy = newFollowed.end;
+            var newFollowed = Object.create(RegexNotFollowedBy);
+            newFollowed._init(this);
             return newFollowed;
         }
     };
@@ -292,18 +298,21 @@
             return this._setLast('[' + getLiterals(characters) + ']');
         }
         else {
-            var newSet = Object.create(RegexCharacterSet);
-            newSet._init(this, false);
-            newSet.endAny = newSet.end;
+            var newSet = Object.create(RegexAny);
+            newSet._init(this);
             return newSet;
         }
     };
 
     regex.any = function any(literals) {
-        var reAny = Object.create(RegexCharacterSet);
-        reAny._init(regex, false);
-        reAny.literals(literals);
-        reAny._close();
+        var reAny = Object.create(RegexAny);
+        reAny._init(regex);
+
+        if (arguments.length) {
+            reAny.literals(literals);
+            reAny._close();
+        }
+
         return reAny;
     };
 
@@ -332,14 +341,13 @@
             return this._setLast('[^' + getLiterals(characters) + ']');
         }
         else {
-            var newSet = Object.create(RegexCharacterSet);
-            newSet._init(this, true);
-            newSet.endNone = newSet.end;
+            var newSet = Object.create(RegexNone);
+            newSet._init(this);
             return newSet;
         }
     };
 
-    RegexBase.or = function or() {
+    RegexBase.or = function or(/* Optional: [literals|RegexBase] */) {
         var mustAddNonCapture = this._state !== STATE_EMPTY;
 
         this._purgeLast();
@@ -352,19 +360,7 @@
         else {
             var reOr = Object.create(RegexOr);
             reOr._init(this, mustAddNonCapture);
-            for (var i = 0, len = arguments.length; i < len; i++) {
-                var arg = arguments[i];
-                reOr._purgeLast();
-                if (typeof arg === 'string') {
-                    reOr.literals(arg);
-                }
-                else if (RegexBase.isPrototypeOf(arg)) {
-                    arg._apply(reOr);
-                }
-                else {
-                    throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
-                }
-            }
+            applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
             return reOr._closeAndApply(this);
         }
     };
@@ -477,11 +473,6 @@
     delete RegexCharacterSet.capture;
     delete RegexCharacterSet.repeat;
 
-    RegexCharacterSet._init = function _init(_parent, _excludeFlag) {
-        RegexBase._init.call(this, _parent);
-        this._excludeFlag = _excludeFlag;
-    };
-
     RegexCharacterSet._close = function _close() {
         this._state = STATE_ANY;
         RegexBase._close.apply(this);
@@ -494,6 +485,14 @@
     RegexCharacterSet.end = function end() {
         return this._closeAndApply(this._parent);
     };
+
+    var RegexAny = Object.create(RegexCharacterSet);
+    RegexAny._excludeFlag = false;
+    RegexAny.endAny = RegexAny.end;
+
+    var RegexNone = Object.create(RegexCharacterSet);
+    RegexNone._excludeFlag = true;
+    RegexNone.endNone = RegexNone.end;
 
     var RegexOr = Object.create(RegexGroup);
 
@@ -532,11 +531,6 @@
 
     var RegexFollowedBy = Object.create(RegexBase);
 
-    RegexFollowedBy._init = function _init(_parent, _notFlag) {
-        RegexBase._init.call(this, _parent);
-        this._notFlag = _notFlag;
-    };
-
     RegexFollowedBy.end = function end() {
         this._purgeLast();
 
@@ -545,6 +539,14 @@
         var notFlags = this._notFlag ? '(?!' : '(?=';
         return this._parent._setLast(notFlags + this._current + ')');
     };
+
+    var RegexIsFollowedBy = Object.create(RegexFollowedBy);
+    RegexIsFollowedBy._notFlag = false;
+    RegexIsFollowedBy.endFollowedBy = RegexIsFollowedBy.end;
+
+    var RegexNotFollowedBy = Object.create(RegexFollowedBy);
+    RegexNotFollowedBy._notFlag = true;
+    RegexNotFollowedBy.endNotFollowedBy = RegexNotFollowedBy.end;
 
     var RegexMacro = Object.create(RegexGroup);
 
@@ -638,6 +640,22 @@
         // TODO option to disable this
         regex.lastIndex = 0;
         return regex;
+    }
+
+    function applyArgs(reNode, args) {
+        for (var i = 0, len = args.length; i < len; i++) {
+            var arg = args[i];
+            reNode._purgeLast();
+            if (typeof arg === 'string') {
+                reNode.literals(arg);
+            }
+            else if (RegexBase.isPrototypeOf(arg)) {
+                arg._apply(reNode);
+            }
+            else {
+                throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
+            }
+        }
     }
 
     var STATE_EMPTY = 'STATE_EMPTY';
