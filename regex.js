@@ -59,9 +59,9 @@
         return this._macros[name] || this._parent._getMacro(name);
     };
 
-    RegexBase._purgeLast = function _purgeLast(_noPurgeOr) {
+    RegexBase._purgeLast = function _purgeLast(alwaysPurgeOr) {
         var newPortion = this._last;
-        if (!_noPurgeOr && this._state === STATE_OR) {
+        if (alwaysPurgeOr && this._state === STATE_OR) {
             newPortion = '(?:' + newPortion + ')';
         }
         this._current += newPortion;
@@ -85,7 +85,7 @@
 
     RegexBase._close = function _close() {
         this._newState = this._state;
-        return this._purgeLast(true); // TODO
+        return this._purgeLast(true);
     };
 
     RegexBase._apply = function _apply(node) {
@@ -100,20 +100,20 @@
 
     RegexBase.literal = function literal(character) {
         this._newState = STATE_CHARACTER;
-        this._purgeLast();
+        this._purgeLast(true);
 
         return this._setLast(getLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
         this._newState = string.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
-        this._purgeLast();
+        this._purgeLast(true);
 
         return this._setLast(getLiterals(string));
     };
 
     RegexBase.macro = function macro(name) {
-        this._purgeLast();
+        this._purgeLast(true);
 
         var mac = this._getMacro(name);
         mac._apply(this);
@@ -121,7 +121,7 @@
     };
 
     RegexBase.seq = RegexBase.sequence = function sequence() {
-        this._purgeLast();
+        this._purgeLast(true);
 
         if (!arguments.length) {
             var newSegment = Object.create(RegexGroup);
@@ -236,7 +236,7 @@
         }
 
         this._newState = STATE_FOLLOWEDBY;
-        this._purgeLast();
+        this._purgeLast(true);
 
         if (arguments.length) {
             return this._setLast('(?=' + getLiterals(string) + ')');
@@ -261,7 +261,7 @@
         }
 
         this._newState = STATE_FOLLOWEDBY;
-        this._purgeLast();
+        this._purgeLast(true);
 
         if (arguments.length) {
             return this._setLast('(?!' + getLiterals(string) + ')');
@@ -279,7 +279,7 @@
         }
 
         this._newState = STATE_ANY;
-        this._purgeLast();
+        this._purgeLast(true);
 
         // TODO -
         return this._setLast('[' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
@@ -292,7 +292,7 @@
         }
 
         this._newState = STATE_ANY;
-        this._purgeLast();
+        this._purgeLast(true);
 
         if (arguments.length) {
             return this._setLast('[' + getLiterals(characters) + ']');
@@ -322,7 +322,7 @@
         }
 
         this._newState = STATE_ANY;
-        this._purgeLast();
+        this._purgeLast(true);
 
         // TODO -
         return this._setLast('[^' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
@@ -335,7 +335,7 @@
         }
 
         this._newState = STATE_ANY;
-        this._purgeLast();
+        this._purgeLast(true);
 
         if (arguments.length) {
             return this._setLast('[^' + getLiterals(characters) + ']');
@@ -350,7 +350,7 @@
     RegexBase.or = function or(/* Optional: [literals|RegexBase] */) {
         var mustAddNonCapture = this._state !== STATE_EMPTY;
 
-        this._purgeLast();
+        this._purgeLast(true);
 
         if (!arguments.length) {
             var newOr = Object.create(RegexOr);
@@ -387,7 +387,7 @@
         function addFlag(flag) {
             return function flagFn() {
                 node._newState = STATE_CHARACTER;
-                node._purgeLast();
+                node._purgeLast(true);
                 return node._setLast(flag);
             };
         }
@@ -403,7 +403,7 @@
             }
 
             node._newState = flagsToAdd.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
-            node._purgeLast();
+            node._purgeLast(true);
             return node._setLast(newFlags);
         };
 
@@ -459,7 +459,9 @@
     };
 
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
-        return this._closeAndApply(this._parent);
+        this._newState = this._state;
+        this._purgeLast(false);
+        return this._apply(this._parent);
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
@@ -494,7 +496,7 @@
     RegexNone._excludeFlag = true;
     RegexNone.endNone = RegexNone.end;
 
-    var RegexOr = Object.create(RegexGroup);
+    var RegexOr = Object.create(RegexBase);
 
     RegexOr._init = function _init(_parent, _needsGrouping) {
         RegexGroup._init.call(this, _parent);
@@ -507,32 +509,32 @@
             this._isActuallyOr = true;
             this._current += '|';
         }
-        RegexGroup._purgeLast.call(this);
+        RegexGroup._purgeLast.call(this, true);
 
         return this;
     };
 
-    RegexOr.endOr = RegexOr.end = function end() {
+    RegexOr._close = function _close() {
         this._newState = this._state;
-        this._purgeLast();
-        this._parent._state = this._state;
-
-        var current = this._current;
+        this._purgeLast(true);
         if (this._needsGrouping && this._isActuallyOr) {
-            this._parent._state = STATE_NONCAPTURE;
-            current = '(?:' + current + ')';
+            this._state = STATE_NONCAPTURE;
+            this._current = '(?:' + this._current + ')';
         }
         else if (this._isActuallyOr) {
-            this._parent._state = STATE_OR;
+            this._state = STATE_OR;
         }
+        return this;
+    };
 
-        return this._parent._setLast(current);
+    RegexOr.endOr = RegexOr.end = function end() {
+        return this._closeAndApply(this._parent);
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
 
     RegexFollowedBy.end = function end() {
-        this._purgeLast();
+        this._purgeLast(true);
 
         this._parent._state = STATE_FOLLOWEDBY;
 
@@ -552,7 +554,7 @@
 
     RegexMacro.endMacro = RegexMacro.end = function end() {
         this._newState = this._state;
-        this._purgeLast(true);
+        this._purgeLast(false);
         return this._parent;
     };
 
@@ -566,7 +568,7 @@
     };
 
     RegexRoot.test = function test(string) {
-        this._purgeLast();
+        this._purgeLast(false);
 
         return getCached(this).test(string);
     };
@@ -579,7 +581,7 @@
         // TODO callback can be a string or function
         // TODO can handle capture never getting called
 
-        this._purgeLast();
+        this._purgeLast(false);
 
         var node = this;
         return string.replace(getCached(this), function () {
@@ -597,7 +599,7 @@
     };
 
     RegexRoot._reClear = function () {
-        this._purgeLast();
+        this._purgeLast(false);
         this._current = '';
         return this;
     };
@@ -645,11 +647,11 @@
     function applyArgs(reNode, args) {
         for (var i = 0, len = args.length; i < len; i++) {
             var arg = args[i];
-            reNode._purgeLast();
             if (typeof arg === 'string') {
                 reNode.literals(arg);
             }
             else if (RegexBase.isPrototypeOf(arg)) {
+                reNode._purgeLast(true);
                 arg._apply(reNode);
             }
             else {
