@@ -32,16 +32,17 @@
     regex.create = regex;
 
     regex.addMacro = function addMacro(name) {
+        var macro;
         if (!arguments.length) {
             throw new Error('addMacro() must be given the name of the macro to create');
         }
         else if (arguments.length === 1) {
-            var macro = regex._macros[name] = Object.create(RegexMacro);
+            macro = regex._macros[name] = Object.create(RegexMacro);
             macro._init(regex);
             return macro;
         }
         else if (arguments.length > 1) {
-            var macro = regex._macros[name] = Object.create(RegexMacro);
+            macro = regex._macros[name] = Object.create(RegexMacro);
             macro._init(regex);
             applyArgs(macro, Array.prototype.slice.call(arguments, 1));
             macro.endMacro();
@@ -520,7 +521,7 @@
     RegexFlags._purgeLast = function _purgeLast() {
         this._state = this._newState;
         return this;
-    }
+    };
 
     RegexFlags._closeAndApply = function _closeAndApply(node) {
         node._state = this._newState;
@@ -686,16 +687,17 @@
     var RegexRoot = Object.create(RegexBase);
 
     RegexRoot.addMacro = function addMacro(name) {
+        var macro;
         if (!arguments.length) {
             throw new Error('addMacro() must be given the name of the macro to create');
         }
         else if (arguments.length === 1) {
-            var macro = this._macros[name] = Object.create(RegexMacro);
+            macro = this._macros[name] = Object.create(RegexMacro);
             macro._init(this);
             return macro;
         }
         else if (arguments.length > 1) {
-            var macro = this._macros[name] = Object.create(RegexMacro);
+            macro = this._macros[name] = Object.create(RegexMacro);
             macro._init(this);
             applyArgs(macro, Array.prototype.slice.call(arguments, 1));
             macro.endMacro();
