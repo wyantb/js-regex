@@ -210,6 +210,33 @@ test('Complex Examples', function () {
     var ipAddrRegex = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
     strictEqual(result, ipAddrRegex, 'IP Address Regex');
 
+    result = regex
+        .addMacro('0-255',
+            regex.either(
+                regex.sequence(
+                    '25',
+                    regex.anyFrom('0', '5')),
+                regex.sequence(
+                    '2',
+                    regex.anyFrom('0', '4'),
+                    regex.anyFrom('0', '9')),
+                regex.sequence(
+                    regex.any('01').optional(),
+                    regex.anyFrom('0', '9'),
+                    regex.anyFrom('0', '9').optional())))
+        .create()
+        .sequence(
+            regex.macro('0-255').capture(),
+            '.',
+            regex.macro('0-255').capture(),
+            '.',
+            regex.macro('0-255').capture(),
+            '.',
+            regex.macro('0-255').capture())
+        .peek();
+
+    strictEqual(result, ipAddrRegex, 'IP Address, Alternate usage form');
+
     //UNLISTED
 
     result = regex()
@@ -281,6 +308,57 @@ test('Complex Examples', function () {
     var businessLogicRegex = '(SH|RE|MF)-((?:197[1-9]|19[89]\\d|[2-9]\\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\\d|3[01]))-((?!0{5})\\d{5})';
 
     strictEqual(result, businessLogicRegex, 'Business-like logic regex');
+
+    result = regex
+        .addMacro('dept-prefix', regex.either('SH', 'RE', 'MF'))
+        .addMacro('date',
+            regex.either(
+                regex.sequence(
+                    '197',
+                    regex.anyFrom('1', '9')),
+                regex.sequence(
+                    '19',
+                    regex.any('89'),
+                    regex.flags.digit()),
+                regex.sequence(
+                    regex.anyFrom('2', '9'),
+                    regex.flags.digit().repeat(3, 3))),
+            '-',
+            regex.either(
+                regex.sequence(
+                    '0',
+                    regex.anyFrom('1', '9')),
+                regex.sequence(
+                    '1',
+                    regex.any('012'))),
+            '-',
+            regex.either(
+                regex.sequence(
+                    '0',
+                    regex.anyFrom('1', '9')),
+                regex.sequence(
+                    regex.any('12'),
+                    regex.flags.digit()),
+                regex.sequence(
+                    '3',
+                    regex.any('01'))))
+        .addMacro('issuenum')
+            .notFollowedBy()
+                .literal('0')
+                .repeat(5, 5)
+            .endNotFollowedBy()
+            .f.digit()
+            .repeat(5, 5)
+        .endMacro()
+        .create()
+        .macro('dept-prefix').capture()
+        .literal('-')
+        .macro('date').capture()
+        .literal('-')
+        .macro('issuenum').capture()
+        .peek();
+
+    strictEqual(result, businessLogicRegex, 'Business-like logic regex, alternate usage form');
 
 });
 

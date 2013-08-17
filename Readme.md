@@ -209,6 +209,8 @@ regex()
 
 (Hint: it's described [here](http://www.regular-expressions.info/examples.html), in the fourth section on the page.)
 
+(Also note: this example uses the 'verbose' usage form, always closing portions with endXXX(); the [Readme tests](https://github.com/wyantb/js-regex/blob/master/test/cases/readme_cases.js) cover the same using an alternate form)
+
 Experimental Methods
 --------------------
 

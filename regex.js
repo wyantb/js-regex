@@ -32,9 +32,21 @@
     regex.create = regex;
 
     regex.addMacro = function addMacro(name) {
-        var macro = regex._macros[name] = Object.create(RegexMacro);
-        macro._init(regex);
-        return macro;
+        if (!arguments.length) {
+            throw new Error('addMacro() must be given the name of the macro to create');
+        }
+        else if (arguments.length === 1) {
+            var macro = regex._macros[name] = Object.create(RegexMacro);
+            macro._init(regex);
+            return macro;
+        }
+        else if (arguments.length > 1) {
+            var macro = regex._macros[name] = Object.create(RegexMacro);
+            macro._init(regex);
+            applyArgs(macro, Array.prototype.slice.call(arguments, 1));
+            macro.endMacro();
+            return regex;
+        }
     };
 
     var RegexBase = {};
@@ -83,9 +95,9 @@
         return this._last;
     };
 
-    RegexBase._close = function _close() {
+    RegexBase._close = function _close(alwaysPurgeOr) {
         this._newState = this._state;
-        return this._purgeLast(true);
+        return this._purgeLast(alwaysPurgeOr);
     };
 
     RegexBase._apply = function _apply(node) {
@@ -93,8 +105,8 @@
         return node._setLast(this._current);
     };
 
-    RegexBase._closeAndApply = function _closeAndApply(node) {
-        this._close();
+    RegexBase._closeAndApply = function _closeAndApply(node, alwaysPurgeOr) {
+        this._close(alwaysPurgeOr);
         return this._apply(node);
     };
 
@@ -129,6 +141,13 @@
         return this;
     };
 
+    regex.macro = function macro(name) {
+        var reBase = Object.create(RegexBase);
+        reBase._init(regex);
+        reBase.macro(name);
+        return reBase;
+    };
+
     RegexBase.seq = RegexBase.sequence = function sequence() {
         this._purgeLast(true);
 
@@ -141,7 +160,7 @@
             var reBase = Object.create(RegexGroup);
             reBase._init(this);
             applyArgs(reBase, Array.prototype.slice.call(arguments, 0));
-            return reBase._closeAndApply(this);
+            return reBase._closeAndApply(this, true);
         }
     };
 
@@ -151,7 +170,6 @@
 
         if (arguments.length) {
             applyArgs(reSeq, Array.prototype.slice.call(arguments, 0));
-            reSeq._close();
         }
 
         return reSeq;
@@ -306,6 +324,13 @@
         return this._setLast('[' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
     };
 
+    regex.anyFrom = function anyFrom(firstChar, secondChar) {
+        var reBase = Object.create(RegexBase);
+        reBase._init(regex);
+        reBase.anyFrom(firstChar, secondChar);
+        return reBase;
+    };
+
     RegexBase.any = function any(characters) {
         // TODO -
         if (arguments.length && typeof characters !== 'string') {
@@ -326,12 +351,13 @@
     };
 
     regex.any = function any(literals) {
-        var reAny = Object.create(RegexAny);
+        var reAny = Object.create(RegexBase);
         reAny._init(regex);
 
         if (arguments.length) {
             reAny.literals(literals);
-            reAny._close();
+            reAny._state = STATE_ANY;
+            reAny._setLast('[' + reAny._getLast() + ']');
         }
 
         return reAny;
@@ -347,6 +373,13 @@
 
         // TODO -
         return this._setLast('[^' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
+    };
+
+    regex.noneFrom = function noneFrom(firstChar, secondChar) {
+        var reBase = Object.create(RegexBase);
+        reBase._init(regex);
+        reBase.noneFrom(firstChar, secondChar);
+        return reBase;
     };
 
     RegexBase.none = function none(characters) {
@@ -368,6 +401,19 @@
         }
     };
 
+    regex.none = function none(literals) {
+        var reNone = Object.create(RegexBase);
+        reNone._init(regex);
+
+        if (arguments.length) {
+            reNone.literals(literals);
+            reNone._state = STATE_ANY;
+            reNone._setLast('[^' + reNone._getLast() + ']');
+        }
+
+        return reNone;
+    };
+
     RegexBase.or = RegexBase.either = function either(/* Optional: [literals|RegexBase] */) {
         var mustAddNonCapture = this._state !== STATE_EMPTY;
 
@@ -382,7 +428,7 @@
             var reOr = Object.create(RegexEither);
             reOr._init(this, mustAddNonCapture);
             applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
-            return reOr._closeAndApply(this);
+            return reOr._closeAndApply(this, true);
         }
     };
 
@@ -392,7 +438,6 @@
 
         if (arguments.length) {
             applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
-            reOr._close();
         }
 
         return reOr;
@@ -468,9 +513,16 @@
 
     var RegexFlags = {};
 
-    RegexFlags._purgeLast = function _purgeLast() {}
+    RegexFlags.repeat = RegexBase.repeat;
+    RegexFlags.capture = RegexBase.capture;
+    RegexFlags.optional = RegexBase.optional;
 
-    RegexFlags._apply = function _apply(node) {
+    RegexFlags._purgeLast = function _purgeLast() {
+        this._state = this._newState;
+        return this;
+    }
+
+    RegexFlags._closeAndApply = function _closeAndApply(node) {
         node._state = this._newState;
         return node._setLast(this._current);
     };
@@ -478,6 +530,10 @@
     RegexFlags._setLast = function _setLast(last) {
         this._current = last;
         return this;
+    };
+
+    RegexFlags._getLast = function _getLast() {
+        return this._current;
     };
 
     RegexFlags.peek = function peek() {
@@ -530,9 +586,9 @@
     delete RegexCharacterSet.capture;
     delete RegexCharacterSet.repeat;
 
-    RegexCharacterSet._close = function _close() {
+    RegexCharacterSet._close = function _close(alwaysPurgeOr) {
         this._state = STATE_ANY;
-        RegexBase._close.apply(this);
+        RegexBase._close.call(this, alwaysPurgeOr);
 
         var setFlags = this._excludeFlag ? '[^' : '[';
         this._current = setFlags + this._current + ']';
@@ -540,7 +596,7 @@
     };
 
     RegexCharacterSet.end = function end() {
-        return this._closeAndApply(this._parent);
+        return this._closeAndApply(this._parent, true);
     };
 
     var RegexAny = Object.create(RegexCharacterSet);
@@ -569,9 +625,9 @@
         return this;
     };
 
-    RegexEither._close = function _close() {
+    RegexEither._close = function _close(alwaysPurgeOr) {
         this._newState = this._state;
-        this._purgeLast(true);
+        this._purgeLast(alwaysPurgeOr);
         if (this._needsGrouping && this._isActuallyOr) {
             this._state = STATE_NONCAPTURE;
             this._current = '(?:' + this._current + ')';
@@ -582,11 +638,18 @@
         return this;
     };
 
+    RegexEither.peek = function peek() {
+        if (this._current && this._getLast()) {
+            return this._current + '|' + this._getLast();
+        }
+        return RegexBase.peek.call(this);
+    };
+
     RegexEither.endOr = RegexEither.endEither = RegexEither.end = function end() {
         if (this._parent !== regex) {
-            return this._closeAndApply(this._parent);
+            return this._closeAndApply(this._parent, true);
         }
-        return this._close();
+        return this._close(true);
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
@@ -610,6 +673,9 @@
 
     var RegexMacro = Object.create(RegexGroup);
 
+    delete RegexMacro.endSequence;
+    delete RegexMacro.endSeq;
+
     RegexMacro.endMacro = RegexMacro.end = function end() {
         this._newState = this._state;
         this._purgeLast(false);
@@ -620,9 +686,21 @@
     var RegexRoot = Object.create(RegexBase);
 
     RegexRoot.addMacro = function addMacro(name) {
-        var macro = regex._macros[name] = Object.create(RegexMacro);
-        macro._init(this);
-        return macro;
+        if (!arguments.length) {
+            throw new Error('addMacro() must be given the name of the macro to create');
+        }
+        else if (arguments.length === 1) {
+            var macro = this._macros[name] = Object.create(RegexMacro);
+            macro._init(this);
+            return macro;
+        }
+        else if (arguments.length > 1) {
+            var macro = this._macros[name] = Object.create(RegexMacro);
+            macro._init(this);
+            applyArgs(macro, Array.prototype.slice.call(arguments, 1));
+            macro.endMacro();
+            return this;
+        }
     };
 
     RegexRoot.test = function test(string) {
@@ -709,8 +787,14 @@
                 reNode.literals(arg);
             }
             else if (RegexBase.isPrototypeOf(arg) || RegexFlags.isPrototypeOf(arg)) {
+                reNode._newState = reNode._state;
                 reNode._purgeLast(true);
-                arg._apply(reNode);
+
+                var mustAddNonCapture = reNode._state !== STATE_EMPTY;
+                var oldNeedsGrouping = arg._needsGrouping;
+                arg._needsGrouping = mustAddNonCapture;
+                arg._closeAndApply(reNode);
+                arg._needsGrouping = oldNeedsGrouping;
             }
             else {
                 throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
