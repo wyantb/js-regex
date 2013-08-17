@@ -123,7 +123,7 @@ test('API Demonstration', function () {
         .either('abc', regex.any('def'))
         .peek();             // Will return 'abc|[def]'
 
-    strictEqual(result, 'abc|def', 'either(lit, any(lit))');
+    strictEqual(result, 'abc|[def]', 'either(lit, any(lit))');
 
     //### Macros
 
