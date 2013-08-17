@@ -105,19 +105,25 @@ test('API Demonstration', function () {
     //### Or
 
     result = regex()
-        .or()
+        .either()
             .literals('abc')
             .literals('def')
-        .endOr()
-        .peek();            // Will return 'abc|def'
+        .endEither()
+        .peek();             // Will return 'abc|def'
 
-    strictEqual(result, 'abc|def', 'or()');
+    strictEqual(result, 'abc|def', 'either()');
+
+    result = regex()
+        .either('abc', 'def')
+        .peek();             // Will return 'abc|def'
+
+    strictEqual(result, 'abc|def', 'either(\'abc\', \'def\')');
+
+    //### Macros
 
     result = regex.create(); // Alternate form of regex()
 
     ok(result, 'regex.create() returns something');
-
-    //### Macros
 
     result = regex
         .addMacro('any-quote') // Adding a global macro for single or double quote
@@ -174,7 +180,7 @@ test('Complex Examples', function () {
 
     result = regex()
         .addMacro('0-255')
-            .or()
+            .either()
                 .sequence()
                     .literals('25')
                     .anyFrom('0', '5')
@@ -189,7 +195,7 @@ test('Complex Examples', function () {
                     .anyFrom('0', '9')
                     .anyFrom('0', '9').optional()
                 .endSequence()
-            .endOr()
+            .endEither()
         .endMacro()
         .macro('0-255').capture()
         .literal('.')
@@ -208,14 +214,14 @@ test('Complex Examples', function () {
 
     result = regex()
         .addMacro('dept-prefix')
-            .or()
+            .either()
                 .literals('SH')
                 .literals('RE')
                 .literals('MF')
-            .endOr()
+            .endEither()
         .endMacro()
         .addMacro('date')
-            .or()
+            .either()
                 .sequence()
                     .literals('197')
                     .anyFrom('1', '9')
@@ -229,9 +235,9 @@ test('Complex Examples', function () {
                     .anyFrom('2', '9')
                     .f.digit().repeat(3, 3)
                 .endSequence()
-            .endOr()
+            .endEither()
             .literal('-')
-            .or()
+            .either()
                 .sequence()
                     .literal('0')
                     .anyFrom('1', '9')
@@ -240,9 +246,9 @@ test('Complex Examples', function () {
                     .literal('1')
                     .any('012')
                 .endSequence()
-            .endOr()
+            .endEither()
             .literal('-')
-            .or()
+            .either()
                 .sequence()
                     .literal('0')
                     .anyFrom('1', '9')
@@ -255,7 +261,7 @@ test('Complex Examples', function () {
                     .literal('3')
                     .any('01')
                 .endSequence()
-            .endOr()
+            .endEither()
         .endMacro()
         .addMacro('issuenum')
             .notFollowedBy()

@@ -47,6 +47,18 @@ test('Functions from root', function () {
 
     strictEqual(result, 'abc|def', 'or() doesn\'t use this');
 
+    ok(regex.flags, 'regex.flags exists');
+
+    result = regex.flags.digit().peek();
+
+    strictEqual(result, '\\d', 'flags.digit() able to be called outside of regex');
+
+    var flags = regex.flags;
+
+    result = flags('dD').peek();
+
+    strictEqual(result, '\\d\\D', 'flags(...) doesn\'t use this');
+
 });
 
 test('Basics', function () {
@@ -88,5 +100,23 @@ test('Basics', function () {
         .peek();
 
     strictEqual(result, 'abc(?:def|[ghi])', 'seq(lit, or(lit, any(lit)))');
+
+    result = regex()
+        .sequence('abc', regex.flags('dD'), regex.any('def'))
+        .peek();
+
+    strictEqual(result, 'abc\\d\\D[def]', 'seq(lit, flags, any(lit))');
+
+    result = regex()
+        .or('abc', regex.flags.digit(), regex.seq('def', 'ghi'))
+        .peek();
+
+    strictEqual(result, 'abc|\\d|defghi', 'or(lit, flags.digit(), seq(lit, lit))');
+
+    result = regex()
+        .or('abc', regex.flags.digit(), regex.seq('def', 'ghi')).repeat()
+        .peek();
+
+    strictEqual(result, '(?:abc|\\d|defghi)*', 'or(lit, flags.digit(), seq(lit, lit)).repeat()');
 
 });

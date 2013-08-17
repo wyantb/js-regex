@@ -114,11 +114,15 @@ regex()
 
 ```javascript
 regex()
-    .or()
+    .either()
         .literals('abc')
         .literals('def')
-    .endOr()
-    .peek();            // Will return 'abc|def'
+    .endEither()
+    .peek();             // Will return 'abc|def'
+
+regex()
+    .either('abc', 'def')
+    .peek();             // Will return 'abc|def'
 ```
 
 ### Macros
@@ -176,7 +180,7 @@ How quickly can you figure out what this is supposed to represent?
 ```javascript
 regex()
     .addMacro('0-255')
-        .or()
+        .either()
             .sequence()
                 .literals('25')
                 .anyFrom('0', '5')
@@ -191,7 +195,7 @@ regex()
                 .anyFrom('0', '9')
                 .anyFrom('0', '9').optional()
             .endSequence()
-        .endOr()
+        .endEither()
     .endMacro()
     .macro('0-255').capture()
     .literal('.')

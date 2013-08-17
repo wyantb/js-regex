@@ -98,6 +98,15 @@
         return this._apply(node);
     };
 
+    RegexBase.call = function call(callback) {
+        callback.call(this, this);
+        return this;
+    };
+
+    RegexBase.peek = function peek() {
+        return this._current + this._getLast();
+    };
+
     RegexBase.literal = function literal(character) {
         this._newState = STATE_CHARACTER;
         this._purgeLast(true);
@@ -359,26 +368,26 @@
         }
     };
 
-    RegexBase.or = function or(/* Optional: [literals|RegexBase] */) {
+    RegexBase.or = RegexBase.either = function either(/* Optional: [literals|RegexBase] */) {
         var mustAddNonCapture = this._state !== STATE_EMPTY;
 
         this._purgeLast(true);
 
         if (!arguments.length) {
-            var newOr = Object.create(RegexOr);
+            var newOr = Object.create(RegexEither);
             newOr._init(this, mustAddNonCapture);
             return newOr;
         }
         else {
-            var reOr = Object.create(RegexOr);
+            var reOr = Object.create(RegexEither);
             reOr._init(this, mustAddNonCapture);
             applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
             return reOr._closeAndApply(this);
         }
     };
 
-    regex.or = function or(/* Optional: [literals|RegexBase] */) {
-        var reOr = Object.create(RegexOr);
+    regex.or = regex.either = function either(/* Optional: [literals|RegexBase] */) {
+        var reOr = Object.create(RegexEither);
         reOr._init(regex, false);
 
         if (arguments.length) {
@@ -457,14 +466,32 @@
         node.f = node.flags = flags;
     }
 
-    RegexBase.call = function call(callback) {
-        callback.call(this, this);
+    var RegexFlags = {};
+
+    RegexFlags._purgeLast = function _purgeLast() {}
+
+    RegexFlags._apply = function _apply(node) {
+        node._state = this._newState;
+        return node._setLast(this._current);
+    };
+
+    RegexFlags._setLast = function _setLast(last) {
+        this._current = last;
         return this;
     };
 
-    RegexBase.peek = function peek() {
-        return this._current + this._getLast();
+    RegexFlags.peek = function peek() {
+        return this._current;
     };
+
+    Object.defineProperty(regex, 'flags', {
+        get: function () {
+            var reFlags = Object.create(RegexFlags);
+            makeFlags(reFlags);
+            return reFlags.flags;
+        },
+        enumerable: true
+    });
 
     var RegexGroup = Object.create(RegexBase);
 
@@ -524,15 +551,15 @@
     RegexNone._excludeFlag = true;
     RegexNone.endNone = RegexNone.end;
 
-    var RegexOr = Object.create(RegexBase);
+    var RegexEither = Object.create(RegexBase);
 
-    RegexOr._init = function _init(_parent, _needsGrouping) {
+    RegexEither._init = function _init(_parent, _needsGrouping) {
         RegexGroup._init.call(this, _parent);
         this._isActuallyOr = false;
         this._needsGrouping = _needsGrouping;
     };
 
-    RegexOr._purgeLast = function _purgeLast() {
+    RegexEither._purgeLast = function _purgeLast() {
         if (this._current) {
             this._isActuallyOr = true;
             this._current += '|';
@@ -542,7 +569,7 @@
         return this;
     };
 
-    RegexOr._close = function _close() {
+    RegexEither._close = function _close() {
         this._newState = this._state;
         this._purgeLast(true);
         if (this._needsGrouping && this._isActuallyOr) {
@@ -555,7 +582,7 @@
         return this;
     };
 
-    RegexOr.endOr = RegexOr.end = function end() {
+    RegexEither.endOr = RegexEither.endEither = RegexEither.end = function end() {
         if (this._parent !== regex) {
             return this._closeAndApply(this._parent);
         }
@@ -681,7 +708,7 @@
             if (typeof arg === 'string') {
                 reNode.literals(arg);
             }
-            else if (RegexBase.isPrototypeOf(arg)) {
+            else if (RegexBase.isPrototypeOf(arg) || RegexFlags.isPrototypeOf(arg)) {
                 reNode._purgeLast(true);
                 arg._apply(reNode);
             }
