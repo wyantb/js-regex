@@ -1,5 +1,4 @@
 any() will treat - as a literal but that will cause problems
-.lit('a').or('b' 'c').capture() -> 'a(b|c)' not 'a((?:b|c))'
 .start() -> .sequence()
 .close aliases (.endSequence(), .endMacro(), etc)
 Backreferences     (\1 - \9)

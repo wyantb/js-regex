@@ -128,8 +128,15 @@
         }
 
         this._captures.push(name);
+        var state = this._state;
         this._state = STATE_CAPTURE;
-        return this._setLast('(' + this._getLast() + ')');
+
+        if (state === STATE_NONCAPTURE) {
+            return this._setLast(this._getLast().replace('(?:', '('));
+        }
+        else {
+            return this._setLast('(' + this._getLast() + ')');
+        }
     };
 
     RegexBase.repeat = function repeat(min, max) {
@@ -431,6 +438,7 @@
         this._purgeLast(true);
 
         var setFlags = this._excludeFlag ? '[^' : '[';
+        this._parent._state = STATE_ANY;
         return this._parent._setLast(setFlags + this._current + ']');
     };
 
@@ -453,10 +461,13 @@
     };
 
     RegexOr.close = function close() {
+        this._newState = this._state;
         this._purgeLast();
+        this._parent._state = this._state;
 
         var current = this._current;
         if (this._needsGrouping && this._isActuallyOr) {
+            this._parent._state = STATE_NONCAPTURE;
             current = '(?:' + current + ')';
         }
         else if (this._isActuallyOr) {
@@ -579,6 +590,7 @@
     var STATE_EMPTY = 'STATE_EMPTY';
     var STATE_CHARACTER = 'STATE_CHARACTER';
     var STATE_CHARACTERS = 'STATE_CHARACTERS';
+    var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_OR = 'STATE_OR';

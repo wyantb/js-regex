@@ -88,3 +88,30 @@ test('literals before and after, but no wrap needed', function () {
     strictEqual(result, 'abc', 'lit before and after');
 });
 
+test('capturing or()', function () {
+
+    var result;
+
+    result = regex()
+        .literals('a')
+        .or()
+            .literals('bc')
+        .close()
+        .capture()
+        .peek();
+
+    strictEqual(result, 'a(bc)', 'No non-capturing group necessary');
+
+    result = regex()
+        .literals('a')
+        .or()
+            .literals('bc')
+            .literals('jk')
+        .close()
+        .capture()
+        .peek();
+
+    strictEqual(result, 'a(bc|jk)', 'No non-capturing group necessary');
+
+});
+
