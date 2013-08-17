@@ -77,7 +77,7 @@ test('preceded by every token', function () {
     }
 
     result = regex()
-        .start()
+        .sequence()
             .literal('a')
         .close()
         .repeat()
@@ -86,7 +86,7 @@ test('preceded by every token', function () {
     strictEqual(result, 'a*', 'a*');
 
     result = regex()
-        .start()
+        .sequence()
             .literal('a')
             .literal('b')
         .close()
@@ -96,7 +96,7 @@ test('preceded by every token', function () {
     strictEqual(result, '(?:ab)*', '(?:ab)*');
 
     result = regex()
-        .start()
+        .sequence()
             .literal('a')
             .or()
                 .literals('abc')
@@ -106,10 +106,10 @@ test('preceded by every token', function () {
         .repeat()
         .peek();
 
-    strictEqual(result, '(?:a(?:abc|abc))*', 'start() with a literal() and or()');
+    strictEqual(result, '(?:a(?:abc|abc))*', 'sequence() with a literal() and or()');
 
     result = regex()
-        .start()
+        .sequence()
             .or()
                 .literals('abc')
                 .literals('bcd')
@@ -118,7 +118,7 @@ test('preceded by every token', function () {
         .repeat()
         .peek();
 
-    strictEqual(result, '(?:abc|bcd)*', 'start() with just an or()');
+    strictEqual(result, '(?:abc|bcd)*', 'sequence() with just an or()');
 
     result = regex()
         .f.digit()
@@ -192,7 +192,7 @@ test('with macros', function () {
     strictEqual(result, 'l*', 'simple literal macro');
 
     result = regex()
-        .start()
+        .sequence()
             .macro('lits')
             .macro('lit')
             .macro('lits')
@@ -200,7 +200,7 @@ test('with macros', function () {
         .repeat()
         .peek();
 
-    strictEqual(result, '(?:litsllits)*', 'combo macros with start()');
+    strictEqual(result, '(?:litsllits)*', 'combo macros with sequence()');
 
     regex.addMacro('or')
             .or()

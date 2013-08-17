@@ -120,7 +120,7 @@
         return this;
     };
 
-    RegexBase.start = function start() {
+    RegexBase.seq = RegexBase.sequence = function sequence() {
         this._purgeLast();
 
         var newSegment = Object.create(RegexGroup);
@@ -468,7 +468,8 @@
     delete RegexCharacterSet.none;
     delete RegexCharacterSet.anyFrom;
     delete RegexCharacterSet.any;
-    delete RegexCharacterSet.start;
+    delete RegexCharacterSet.seq;
+    delete RegexCharacterSet.sequence;
     delete RegexCharacterSet.capture;
     delete RegexCharacterSet.repeat;
 
