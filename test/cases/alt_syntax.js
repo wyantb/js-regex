@@ -1,9 +1,11 @@
 
-module('Alternate syntax');
+module('Alternate usage patterns');
 
 test('Functions from root', function () {
 
     var result;
+
+    ok(regex.any, 'regex.any exists');
 
     result = regex
         .any('defg')
@@ -16,6 +18,34 @@ test('Functions from root', function () {
     result = any('defg').peek();
 
     strictEqual(result, '[defg]', 'any() doesn\'t use this');
+
+    ok(regex.sequence, 'regex.sequence exists');
+    ok(regex.seq === regex.sequence, 'regex.seq is alias for regex.sequence');
+
+    result = regex
+        .sequence().literals('a').any('abc').endSequence()
+        .peek();
+
+    strictEqual(result, 'a[abc]', 'sequence() able to be called outside of regex');
+
+    var sequence = regex.sequence;
+
+    result = sequence('a', regex.any('abc'))
+        .peek();
+
+    strictEqual(result, 'a[abc]', 'sequence() doesn\'t use this');
+
+    ok(regex.or, 'regex.or exists');
+
+    result = regex.or().literals('abc').literals('def').endOr().peek();
+
+    strictEqual(result, 'abc|def', 'or() able to be called outside of regex');
+
+    var or = regex.or;
+
+    result = or('abc', 'def').peek();
+
+    strictEqual(result, 'abc|def', 'or() doesn\'t use this');
 
 });
 
@@ -46,5 +76,17 @@ test('Basics', function () {
         .peek();
 
     strictEqual(result, '(?:abc[def])*', 'sequence() given literal and any()');
+
+    result = regex()
+        .or('abc', regex.sequence('def', regex.any('ghi')))
+        .peek();
+
+    strictEqual(result, 'abc|def[ghi]', 'or(lit, seq(lit, any(lit)))');
+
+    result = regex()
+        .sequence('abc', regex.or('def', regex.any('ghi')))
+        .peek();
+
+    strictEqual(result, 'abc(?:def|[ghi])', 'seq(lit, or(lit, any(lit)))');
 
 });

@@ -136,6 +136,18 @@
         }
     };
 
+    regex.seq = regex.sequence = function sequence() {
+        var reSeq = Object.create(RegexGroup);
+        reSeq._init(regex);
+
+        if (arguments.length) {
+            applyArgs(reSeq, Array.prototype.slice.call(arguments, 0));
+            reSeq._close();
+        }
+
+        return reSeq;
+    };
+
     RegexBase.capture = function capture(name) {
         if (arguments.length !== 0 && typeof name !== 'string') {
             throw new Error('named error groups for capture must be a String');
@@ -365,6 +377,18 @@
         }
     };
 
+    regex.or = function or(/* Optional: [literals|RegexBase] */) {
+        var reOr = Object.create(RegexOr);
+        reOr._init(regex, false);
+
+        if (arguments.length) {
+            applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
+            reOr._close();
+        }
+
+        return reOr;
+    };
+
     var flagCharacters = {
         '.': '.',
         '^': '^',
@@ -461,7 +485,11 @@
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
         this._newState = this._state;
         this._purgeLast(false);
-        return this._apply(this._parent);
+
+        if (this._parent !== regex) {
+            return this._apply(this._parent);
+        }
+        return this;
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
@@ -528,7 +556,10 @@
     };
 
     RegexOr.endOr = RegexOr.end = function end() {
-        return this._closeAndApply(this._parent);
+        if (this._parent !== regex) {
+            return this._closeAndApply(this._parent);
+        }
+        return this._close();
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
