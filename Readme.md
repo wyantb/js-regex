@@ -86,6 +86,11 @@ regex()
     .endSequence()
       .repeat()
     .peek();            // Will return '(?:aaa\dbbb)*'
+
+regex().sequence('aaa', regex.flags.digit(), 'bbb')
+    .repeat()
+    .peek();            // Will return '(?:aaa\dbbb)*'
+
 ```
 
 ### Character Sets
@@ -121,8 +126,8 @@ regex()
     .peek();             // Will return 'abc|def'
 
 regex()
-    .either('abc', 'def')
-    .peek();             // Will return 'abc|def'
+    .either('abc', regex.any('def'))
+    .peek();             // Will return 'abc|[def]'
 ```
 
 ### Macros

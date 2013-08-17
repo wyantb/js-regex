@@ -76,6 +76,12 @@ test('API Demonstration', function () {
 
     strictEqual(result, '(?:aaa\\dbbb)*', 'Simple grouping');
 
+    result = regex().sequence('aaa', regex.flags.digit(), 'bbb')
+        .repeat()
+        .peek();            // Will return '(?:aaa\dbbb)*'
+
+    strictEqual(result, '(?:aaa\\dbbb)*', 'Simple grouping, alt form');
+
     //### Character Sets
 
     result = regex()
@@ -114,10 +120,10 @@ test('API Demonstration', function () {
     strictEqual(result, 'abc|def', 'either()');
 
     result = regex()
-        .either('abc', 'def')
-        .peek();             // Will return 'abc|def'
+        .either('abc', regex.any('def'))
+        .peek();             // Will return 'abc|[def]'
 
-    strictEqual(result, 'abc|def', 'either(\'abc\', \'def\')');
+    strictEqual(result, 'abc|def', 'either(lit, any(lit))');
 
     //### Macros
 
