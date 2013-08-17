@@ -71,6 +71,7 @@
         this._states[this._newState] = true;
         this._state = this._newState;
         this._newState = STATE_EMPTY;
+        return this;
     };
 
     RegexBase._setLast = function _setLast(last) {
@@ -80,6 +81,21 @@
 
     RegexBase._getLast = function _getLast() {
         return this._last;
+    };
+
+    RegexBase._close = function _close() {
+        this._newState = this._state;
+        return this._purgeLast(true); // TODO
+    };
+
+    RegexBase._apply = function _apply(node) {
+        node._state = this._state;
+        return node._setLast(this._current);
+    };
+
+    RegexBase._closeAndApply = function _closeAndApply(node) {
+        this._close();
+        return this._apply(node);
     };
 
     RegexBase.literal = function literal(character) {
@@ -280,6 +296,14 @@
         }
     };
 
+    regex.any = function any(literals) {
+        var reAny = Object.create(RegexCharacterSet);
+        reAny._init(regex, false);
+        reAny.literals(literals);
+        reAny._close();
+        return reAny;
+    };
+
     RegexBase.noneFrom = function noneFrom(firstChar, secondChar) {
         if (typeof firstChar !== 'string' || typeof secondChart !== 'string') {
             throw new Error('must specify two characters for noneFrom() method');
@@ -316,9 +340,29 @@
 
         this._purgeLast();
 
-        var newOr = Object.create(RegexOr);
-        newOr._init(this, mustAddNonCapture);
-        return newOr;
+        if (!arguments.length) {
+            var newOr = Object.create(RegexOr);
+            newOr._init(this, mustAddNonCapture);
+            return newOr;
+        }
+        else {
+            var reOr = Object.create(RegexOr);
+            reOr._init(this, mustAddNonCapture);
+            for (var i = 0, len = arguments.length; i < len; i++) {
+                var arg = arguments[i];
+                reOr._purgeLast();
+                if (typeof arg === 'string') {
+                    reOr.literals(arg);
+                }
+                else if (RegexBase.isPrototypeOf(arg)) {
+                    arg._apply(reOr);
+                }
+                else {
+                    throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
+                }
+            }
+            return reOr._closeAndApply(this);
+        }
     };
 
     var flagCharacters = {
@@ -399,6 +443,7 @@
     };
 
     var RegexGroup = Object.create(RegexBase);
+
     RegexGroup._apply = function _apply(node) {
         if (this._state === STATE_OR) {
             node._state = STATE_OR;
@@ -414,9 +459,7 @@
     };
 
     RegexGroup.close = function close() {
-        this._newState = this._state;
-        this._purgeLast(true);
-        return this._apply(this._parent);
+        return this._closeAndApply(this._parent);
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
@@ -434,12 +477,17 @@
         this._excludeFlag = _excludeFlag;
     };
 
-    RegexCharacterSet.close = function close() {
-        this._purgeLast(true);
+    RegexCharacterSet._close = function _close() {
+        this._state = STATE_ANY;
+        RegexBase._close.apply(this);
 
         var setFlags = this._excludeFlag ? '[^' : '[';
-        this._parent._state = STATE_ANY;
-        return this._parent._setLast(setFlags + this._current + ']');
+        this._current = setFlags + this._current + ']';
+        return this;
+    };
+
+    RegexCharacterSet.close = function close() {
+        return this._closeAndApply(this._parent);
     };
 
     var RegexOr = Object.create(RegexGroup);
