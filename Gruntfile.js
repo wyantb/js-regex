@@ -2,6 +2,9 @@
 module.exports = function (grunt) {
     'use strict';
 
+    var _ = grunt.util._;
+    var jshintOptions = grunt.file.readJSON('.jshintrc');
+
     grunt.initConfig({
         uglify: {
             options: {
@@ -14,7 +17,21 @@ module.exports = function (grunt) {
             all: 'test/index.html'
         },
         jshint: {
-            all: ['regex.js', 'test/cases/**/*.js']
+            options: jshintOptions,
+            src: 'regex.js',
+            tests: {
+                options: _.defaults({
+                    strict: false,
+                    globals: {
+                        module: true,
+                        test: true,
+                        strictEqual: true,
+                        regex: true,
+                        ok: true
+                    },
+                }, jshintOptions),
+                src: 'test/cases/**/*.js'
+            }
         },
     });
 

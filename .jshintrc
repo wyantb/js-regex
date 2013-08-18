@@ -17,11 +17,5 @@
     "strict": true,
     "trailing": true,
     "smarttabs": true,
-    "eqnull": true,
-
-    "globals": {
-        "module": true,
-        "test": true,
-        "strictEqual": true
-    }
+    "eqnull": true
 }

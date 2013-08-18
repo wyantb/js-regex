@@ -373,7 +373,7 @@
     };
 
     RegexBase.noneFrom = function noneFrom(firstChar, secondChar) {
-        if (typeof firstChar !== 'string' || typeof secondChart !== 'string') {
+        if (typeof firstChar !== 'string' || typeof secondChar !== 'string') {
             throw new Error('must specify two characters for noneFrom() method');
         }
 

@@ -5,6 +5,9 @@ test('Functions from root', function () {
 
     var result;
 
+    ok(!regex.literal, 'No use for regex.literal function; so doesn\'t exist.');
+    ok(!regex.literals, 'No use for regex.literals function; so doesn\'t exist.');
+
     ok(regex.any, 'regex.any exists');
 
     result = regex
@@ -36,6 +39,7 @@ test('Functions from root', function () {
     strictEqual(result, 'a[abc]', 'sequence() doesn\'t use this');
 
     ok(regex.or, 'regex.or exists');
+    ok(regex.or === regex.either, 'regex.or is alias for regex.either');
 
     result = regex.or().literals('abc').literals('def').endOr().peek();
 
@@ -58,6 +62,37 @@ test('Functions from root', function () {
     result = flags('dD').peek();
 
     strictEqual(result, '\\d\\D', 'flags(...) doesn\'t use this');
+
+    ok(regex.macro, 'regex.macro exists');
+
+    regex.addMacro('pie', 'pie');
+
+    result = regex.macro('pie').peek();
+
+    strictEqual(result, 'pie', 'macro(name) able to be called outside of regex');
+
+    var macro = regex.macro;
+
+    result = macro('pie').peek();
+
+    strictEqual(result, 'pie', 'macro(name) doesn\'t use this');
+
+    ok(regex.followedBy, 'regex.followedBy exists');
+    ok(regex.notFollowedBy, 'regex.notFollowedBy exists');
+
+    var followedBy = regex.followedBy;
+
+    result = sequence(followedBy('abc'), regex.notFollowedBy('def')).peek();
+
+    strictEqual(result, '(?=abc)(?!def)', 'can use followedBy/notFollowedBy outside of regex');
+
+    ok(regex.none, 'regex.none exists');
+    ok(regex.noneFrom, 'regex.noneFrom exists');
+    ok(regex.anyFrom, 'regex.anyFrom exists');
+
+    result = sequence(regex.none('abc'), regex.noneFrom('d', 'f'), regex.anyFrom('a', 'z')).peek();
+
+    strictEqual(result, '[^abc][^d-f][a-z]', 'can use none, noneFrom, anyFrom outside of regex');
 
 });
 
