@@ -1,11 +1,23 @@
 js-regex
 ========
 
+What is it?
+-----------
+
+js-regex is a fluent regex builder for JavaScript.  Its aim is to make the writing and maintenance of complicated regexes less taxing and error-prone.
+
 Why?
 ----
 
-Because if you're using RegExp, and your problem isn't solved yet, you're not using
-enough RegExp.
+Let's suppose that you've been asked to figure out why the following regex isn't working:
+
+```javascript
+(SH|RE|MF)-((?:197[1-9]|19[89]\d|[2-9]\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\d|3[01]))-((?!0{5})\d{5})
+```
+
+If you're experienced with regexes, it's certainly possible to gain an understanding of it, but it takes longer than it should.
+
+This is one example regex that has been built with this library; see [below](#business-logic-regex) to see this example translated into a js-regex equivalent, or simply read on to go through most of the API before jumping into the complex examples.
 
 Tests
 -----
@@ -216,8 +228,78 @@ regex()
 
 (Also note: this example uses the 'verbose' usage form, always closing portions with endXXX(); the [Readme tests](https://github.com/wyantb/js-regex/blob/master/test/cases/readme_cases.js) cover the same using an alternate form)
 
-Experimental Methods
---------------------
+### Business Logic Regex
+
+So our 'business logic' regex looks like this:
+
+```javascript
+(SH|RE|MF)-((?:197[1-9]|19[89]\d|[2-9]\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\d|3[01]))-((?!0{5})\d{5})
+```
+
+Written in human terms, that would be: one of three department codes, a dash, a YYYY-MM-DD date (after Jan 1, 1971), a dash, then a non 00000 5 digit number.
+
+In converting this regex to use js-regex, we make use of macros to define the department code, the date, and the trailing number.  Note that most of this example is spent setting up the date regex - if your situation called for many dates being used in the application, the cost of setting up this most complicated portion of the regex would only need to be done once, after which it would be usable in other circumstances with no code changes, and far greater readability.
+
+Anyway, let's take a look:
+
+```javascript
+regex
+    .addMacro('dept-prefix', regex.either('SH', 'RE', 'MF'))
+    .addMacro('date',
+        regex.either(
+            regex.sequence(
+                '197',
+                regex.anyFrom('1', '9')),
+            regex.sequence(
+                '19',
+                regex.any('89'),
+                regex.flags.digit()),
+            regex.sequence(
+                regex.anyFrom('2', '9'),
+                regex.flags.digit().repeat(3, 3))),
+        '-',
+        regex.either(
+            regex.sequence(
+                '0',
+                regex.anyFrom('1', '9')),
+            regex.sequence(
+                '1',
+                regex.any('012'))),
+        '-',
+        regex.either(
+            regex.sequence(
+                '0',
+                regex.anyFrom('1', '9')),
+            regex.sequence(
+                regex.any('12'),
+                regex.flags.digit()),
+            regex.sequence(
+                '3',
+                regex.any('01'))))
+    .addMacro('issuenum')
+        .notFollowedBy()
+            .literal('0')
+            .repeat(5, 5)
+        .endNotFollowedBy()
+        .f.digit()
+        .repeat(5, 5)
+    .endMacro()
+    .create()
+        .macro('dept-prefix').capture()
+        .literal('-')
+        .macro('date').capture()
+        .literal('-')
+        .macro('issuenum').capture()
+        .peek(); // Returns the string shown above
+```
+
+Conclusion
+----------
+
+Perhaps this library piques your interest.  If so, cool!  Let me know!  Just know that there are a few things that I'd like to clean up before really releasing this library;  [see the issues page](https://github.com/wyantb/js-regex/issues) for details.  That and more tests; it's probably too easy to step into a landmine of invalid or senseless regexes right now, so negative coverage (cannot do these invalid things with js-regex) and more positive coverage are always helpful.
+
+Really, Really Experimental Methods
+-----------------------------------
 
 ### Simple Testing
 
@@ -231,8 +313,7 @@ regex()
 
 ### Simple Replacing
 
-replace() is probably pretty buggy, especially with multiple named capture groups
- in a row.
+replace() is probably pretty buggy, especially with multiple named capture groups.
 
 ```javascript
 regex()
