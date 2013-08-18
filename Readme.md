@@ -11,7 +11,7 @@ Why?
 
 Let's suppose that you've been asked to figure out why the following regex isn't working:
 
-```javascript
+```
 (SH|RE|MF)-((?:197[1-9]|19[89]\d|[2-9]\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\d|3[01]))-((?!0{5})\d{5})
 ```
 
@@ -232,7 +232,7 @@ regex()
 
 So our 'business logic' regex looks like this:
 
-```javascript
+```
 (SH|RE|MF)-((?:197[1-9]|19[89]\d|[2-9]\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\d|3[01]))-((?!0{5})\d{5})
 ```
 
@@ -244,6 +244,7 @@ Anyway, let's take a look:
 
 ```javascript
 regex
+    // Setting up our macros...
     .addMacro('dept-prefix', regex.either('SH', 'RE', 'MF'))
     .addMacro('date',
         regex.either(
@@ -284,19 +285,20 @@ regex
         .f.digit()
         .repeat(5, 5)
     .endMacro()
+    // Macros are setup, let's create our actual regex now:
     .create()
         .macro('dept-prefix').capture()
         .literal('-')
         .macro('date').capture()
         .literal('-')
         .macro('issuenum').capture()
-        .peek(); // Returns the string shown above
+        .peek(); // Returns the string shown above this code example
 ```
 
 Conclusion
 ----------
 
-Perhaps this library piques your interest.  If so, cool!  Let me know!  Just know that there are a few things that I'd like to clean up before really releasing this library;  [see the issues page](https://github.com/wyantb/js-regex/issues) for details.  That and more tests; it's probably too easy to step into a landmine of invalid or senseless regexes right now, so negative coverage (cannot do these invalid things with js-regex) and more positive coverage are always helpful.
+Perhaps this library piques your interest.  If so, cool!  Let me know!  Just know that there are a few things that I'd like to clean up before really releasing this library;  [see the issues page](https://github.com/wyantb/js-regex/issues) for details.  That and more tests; it's probably too easy to step into a landmine of invalid or senseless regexes right now, so negative coverage (it is not possible to do *these* invalid things with js-regex) and more positive coverage are always helpful.
 
 Really, Really Experimental Methods
 -----------------------------------
