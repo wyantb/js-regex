@@ -1,5 +1,5 @@
 
-/**
+/**!
  * js-regex: a chainable regex building library for Javascript.
  *
  * @author    Brian Wyant <wyantb@gmail.com>

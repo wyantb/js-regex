@@ -3,6 +3,13 @@ module.exports = function (grunt) {
     'use strict';
 
     grunt.initConfig({
+        uglify: {
+            options: {
+                sourceMap: 'regex.min.map',
+                preserveComments: 'some',
+            },
+            'regex.min.js': 'regex.js'
+        },
         qunit: {
             all: 'test/index.html'
         },
@@ -20,6 +27,7 @@ module.exports = function (grunt) {
     grunt.loadTasks('tasks');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-qunit');
+    grunt.loadNpmTasks('grunt-contrib-uglify');
 
 };
 

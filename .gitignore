@@ -1,3 +1,5 @@
 node_modules
 *.swp
 *~
+regex.min.js
+regex.min.map
