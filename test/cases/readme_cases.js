@@ -316,6 +316,7 @@ test('Complex Examples', function () {
     strictEqual(result, businessLogicRegex, 'Business-like logic regex');
 
     result = regex
+        // Setting up our macros...
         .addMacro('dept-prefix', regex.either('SH', 'RE', 'MF'))
         .addMacro('date',
             regex.either(
@@ -348,19 +349,20 @@ test('Complex Examples', function () {
                 regex.sequence(
                     '3',
                     regex.any('01'))))
-    .addMacro('issuenum',
-        regex.notFollowedBy()
-            .literal('0')
-                .repeat(5, 5),
-        regex.flags.digit()
-            .repeat(5, 5))
-    .create()
-        .macro('dept-prefix').capture()
-        .literal('-')
-        .macro('date').capture()
-        .literal('-')
-        .macro('issuenum').capture()
-        .peek();
+        .addMacro('issuenum',
+            regex.notFollowedBy()
+                .literal('0')
+                    .repeat(5, 5),
+            regex.flags.digit()
+                .repeat(5, 5))
+        // Macros are setup, let's create our actual regex now:
+        .create()
+            .macro('dept-prefix').capture()
+            .literal('-')
+            .macro('date').capture()
+            .literal('-')
+            .macro('issuenum').capture()
+            .peek(); // Returns the string shown above this code example
 
     strictEqual(result, businessLogicRegex, 'Business-like logic regex, alternate usage form');
 
