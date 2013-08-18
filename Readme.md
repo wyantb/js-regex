@@ -179,12 +179,12 @@ regex
 regex()
     .literals('aaa')
       .followedBy('bbb')
-    .peek();            // Will return '(?:aaa)(?=bbb)'
+    .peek();            // Will return 'aaa(?=bbb)'
 
 regex()
     .literals('ccc')
       .notFollowedBy('ddd')
-    .peek();               // Will return '(?:ccc)(?!ddd)
+    .peek();               // Will return 'ccc(?!ddd)
 ```
 
 Complicated Regexes
@@ -276,14 +276,12 @@ regex
             regex.sequence(
                 '3',
                 regex.any('01'))))
-    .addMacro('issuenum')
-        .notFollowedBy()
+    .addMacro('issuenum',
+        regex.notFollowedBy()
             .literal('0')
-            .repeat(5, 5)
-        .endNotFollowedBy()
-        .f.digit()
-        .repeat(5, 5)
-    .endMacro()
+                .repeat(5, 5),
+        regex.flags.digit()
+            .repeat(5, 5))
     .create()
         .macro('dept-prefix').capture()
         .literal('-')

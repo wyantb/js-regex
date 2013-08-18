@@ -268,13 +268,6 @@
             throw new Error('if specifying arguments for followedBy(), must be a String of literals');
         }
 
-        switch (this._state) {
-        case STATE_CHARACTERS:
-        case STATE_OR:
-            this._setLast('(?:' + this._getLast() + ')');
-            break;
-        }
-
         this._newState = STATE_FOLLOWEDBY;
         this._purgeLast(true);
 
@@ -288,16 +281,20 @@
         }
     };
 
+    regex.followedBy = function followedBy(literals) {
+        var reFollowed = Object.create(RegexIsFollowedBy);
+        reFollowed._init(regex);
+
+        if (literals) {
+            reFollowed.literals(literals);
+        }
+
+        return reFollowed;
+    };
+
     RegexBase.notFollowedBy = function notFollowedBy(string) {
         if (arguments.length && typeof string !== 'string') {
             throw new Error('if specifying arguments for notFollowedBy(), must be a String of literals');
-        }
-
-        switch (this._state) {
-        case STATE_CHARACTERS:
-        case STATE_OR:
-            this._setLast('(?:' + this._getLast() + ')');
-            break;
         }
 
         this._newState = STATE_FOLLOWEDBY;
@@ -311,6 +308,17 @@
             newFollowed._init(this);
             return newFollowed;
         }
+    };
+
+    regex.notFollowedBy = function notFollowedBy(literals) {
+        var reFollowed = Object.create(RegexNotFollowedBy);
+        reFollowed._init(regex);
+
+        if (literals) {
+            reFollowed.literals(literals);
+        }
+
+        return reFollowed;
     };
 
     RegexBase.anyFrom = function anyFrom(firstChar, secondChar) {
@@ -655,13 +663,17 @@
 
     var RegexFollowedBy = Object.create(RegexBase);
 
-    RegexFollowedBy.end = function end() {
-        this._purgeLast(true);
-
-        this._parent._state = STATE_FOLLOWEDBY;
+    RegexFollowedBy._close = function _close(alwaysPurgeOr) {
+        this._state = STATE_FOLLOWEDBY;
+        RegexBase._close.call(this, alwaysPurgeOr);
 
         var notFlags = this._notFlag ? '(?!' : '(?=';
-        return this._parent._setLast(notFlags + this._current + ')');
+        this._current = notFlags + this._current + ')';
+        return this;
+    };
+
+    RegexFollowedBy.end = function end() {
+        return this._closeAndApply(this._parent, true);
     };
 
     var RegexIsFollowedBy = Object.create(RegexFollowedBy);

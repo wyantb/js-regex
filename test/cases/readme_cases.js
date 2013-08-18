@@ -165,16 +165,16 @@ test('API Demonstration', function () {
     result = regex()
         .literals('aaa')
           .followedBy('bbb')
-        .peek();            // Will return '(?:aaa)(?=bbb)'
+        .peek();            // Will return 'aaa(?=bbb)'
 
-    strictEqual(result, '(?:aaa)(?=bbb)', 'followedBy()');
+    strictEqual(result, 'aaa(?=bbb)', 'followedBy()');
 
     result = regex()
         .literals('ccc')
           .notFollowedBy('ddd')
-        .peek();               // Will return '(?:ccc)(?!ddd)
+        .peek();               // Will return 'ccc(?!ddd)
 
-    strictEqual(result, '(?:ccc)(?!ddd)', 'notFollowedBy()');
+    strictEqual(result, 'ccc(?!ddd)', 'notFollowedBy()');
 
 });
 
@@ -348,15 +348,13 @@ test('Complex Examples', function () {
                 regex.sequence(
                     '3',
                     regex.any('01'))))
-        .addMacro('issuenum')
-            .notFollowedBy()
-                .literal('0')
-                .repeat(5, 5)
-            .endNotFollowedBy()
-            .f.digit()
-            .repeat(5, 5)
-        .endMacro()
-        .create()
+    .addMacro('issuenum',
+        regex.notFollowedBy()
+            .literal('0')
+                .repeat(5, 5),
+        regex.flags.digit()
+            .repeat(5, 5))
+    .create()
         .macro('dept-prefix').capture()
         .literal('-')
         .macro('date').capture()

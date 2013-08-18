@@ -14,14 +14,15 @@ module.exports = function (grunt) {
             all: 'test/index.html'
         },
         jshint: {
-            all: ['**/*.js', '!test/resources/**', '!node_modules/**']
+            all: ['regex.js', 'test/cases/**/*.js']
         },
     });
 
     grunt.registerTask('default', [
         'jshint',
         'qunit',
-        'quick_node_check'
+        'quick_node_check',
+        'uglify'
     ]);
 
     grunt.loadTasks('tasks');

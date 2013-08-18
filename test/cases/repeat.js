@@ -230,6 +230,6 @@ test('with macros', function () {
         .repeat()
         .peek();
 
-    strictEqual(result, '(?:(?:abc)(?=def))*', 'followedBy() based macro');
+    strictEqual(result, '(?:abc(?=def))*', 'followedBy() based macro');
 
 });
