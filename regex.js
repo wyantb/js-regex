@@ -79,9 +79,9 @@
         this._state = STATE_EMPTY;
         this._states = {};
         this._numPurged = 0;
+        this._captureStack = [];
 
         this._parent = _parent || {};
-        this._captures =  this._parent._captures  || [];
         this._cache =  this._parent._cache  || {};
         this._macros = {};
 
@@ -102,6 +102,7 @@
 
         this._numPurged++;
         this._states[this._newState] = true;
+        this._captureFlag = false;
         this._state = this._newState;
         this._newState = STATE_EMPTY;
         return this;
@@ -207,11 +208,15 @@
             throw new Error('capturing twice in a row is pointless');
         }
 
-        if (!name) {
-            name = String(this._captures.length + 1);
+        if (!this._captureFlag) {
+            this._captureStack.push(name);
+        }
+        else {
+            this._captureStack.unshift(name);
         }
 
-        this._captures.push(name);
+        this._captureFlag = true;
+
         var state = this._state;
         this._state = STATE_CAPTURE;
 
@@ -842,7 +847,23 @@
         return literals;
     }
 
+    function flatten(arry) {
+        var result = [];
+        for (var i = 0, len = arry.length; i < len; i++) {
+            var val = arry[i];
+            if (typeof val === 'array') {
+                result = result.concat(flatten(val));
+            }
+            else {
+                result.push(val);
+            }
+        }
+        return result;
+    }
+
     function getCached(node) {
+        node._captures = flatten(node._captureStack);
+
         var regex = node._cache[node._current];
         if (!regex) {
             regex = node._cache[node._current] = new RegExp(node._current, node._flags);
