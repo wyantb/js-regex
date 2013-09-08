@@ -768,6 +768,31 @@
         });
     };
 
+    RegexRoot.exec = function exec(string) {
+        if (typeof string !== 'string') {
+            throw new Error('can only call exec with a String');
+        }
+
+        this._purgeLast(false);
+
+        var execed = getCached(this).exec(string);
+
+        if (!execed) {
+            return null;
+        }
+
+        var result = {
+            result: execed[0]
+        };
+
+        for (var i = 1, len = execed.length; i < len; i++) {
+            var name = this._captures[i - 1];
+            result[name] = execed[i];
+        }
+
+        return result;
+    };
+
     RegexRoot._reClear = function () {
         this._purgeLast(false);
         this._current = '';
