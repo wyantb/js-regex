@@ -107,7 +107,6 @@
 
         this._numPurged++;
         this._states[this._newState] = true;
-        this._captureFlag = false;
         this._state = this._newState;
         this._newState = STATE_EMPTY;
         return this;
@@ -203,7 +202,10 @@
     };
 
     RegexBase.capture = function capture(name) {
-        if (arguments.length !== 0 && typeof name !== 'string') {
+        if (name == null) {
+            name = String(Math.random() * 1000000);
+        }
+        if (typeof name !== 'string') {
             throw new Error('named error groups for capture must be a String');
         }
         if (this._getLast() === '' || this._state === STATE_EMPTY) {
@@ -216,20 +218,22 @@
             throw new Error('the capture group \'match\' represents the entire match group, and cannot be used as a custom named group');
         }
 
-        if (!this._captureFlag) {
-            this._captureStack.push(name);
-        }
-        else {
-            this._captureStack.unshift(name);
-        }
-
-        this._captureFlag = true;
-
         var state = this._state;
+        switch (state) {
+        case STATE_CAPTURE:
+        case STATE_REPEAT:
+        case STATE_GROUPED:
+            this._captureStack.unshift(name);
+            break;
+        default:
+            this._captureStack.push(name);
+            break;
+        }
+
         this._state = STATE_CAPTURE;
 
         switch (state) {
-        case STATE_NONCAPTURE:
+        case STATE_OPENNONCAPTURE:
             return this._setLast(this._getLast().replace('(?:', '('));
         default:
             return this._setLast('(' + this._getLast() + ')');
@@ -245,6 +249,7 @@
         }
 
         switch (this._state) {
+        case STATE_GROUPED:
         case STATE_CHARACTERS:
         case STATE_OR:
             this._setLast('(?:' + this._getLast() + ')');
@@ -285,6 +290,7 @@
         }
 
         switch (this._state) {
+        case STATE_GROUPED:
         case STATE_CHARACTERS:
         case STATE_OR:
             this._setLast('(?:' + this._getLast() + ')');
@@ -597,12 +603,17 @@
         if (this._state === STATE_OR) {
             node._state = STATE_OR;
         }
-        else if (this._states[STATE_CHARACTERS] || this._numPurged > 2) {
+        else if (this._numPurged > 2) {
+            node._state = STATE_GROUPED;
+        }
+        else if (this._states[STATE_CHARACTERS]) {
             node._state = STATE_CHARACTERS;
         }
         else {
             node._state = this._state;
         }
+
+        pushAll(node._captureStack, this._captureStack);
 
         return node._setLast(this._current);
     };
@@ -671,7 +682,8 @@
         this._newState = this._state;
         this._purgeLast(alwaysPurgeOr);
         if (this._needsGrouping && this._isActuallyOr) {
-            this._state = STATE_NONCAPTURE;
+            // see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture
+            this._state = STATE_OPENNONCAPTURE;
             this._current = '(?:' + this._current + ')';
         }
         else if (this._isActuallyOr) {
@@ -884,6 +896,11 @@
         }
         return result;
     }
+    function pushAll(arr1, arr2) {
+        for (var i = 0, len = arr2.length; i < len; i++) {
+            arr1.push(arr2[i]);
+        }
+    }
 
     function getCached(node) {
         node._captures = copy(node._captureStack);
@@ -923,13 +940,14 @@
     var STATE_EMPTY = 'STATE_EMPTY';
     var STATE_CHARACTER = 'STATE_CHARACTER';
     var STATE_CHARACTERS = 'STATE_CHARACTERS';
-    var STATE_NONCAPTURE = 'STATE_NONCAPTURE';
+    var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_OR = 'STATE_OR';
     var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     var STATE_ANY = 'STATE_ANY';
     var STATE_OPTIONAL = 'STATE_OPTIONAL';
+    var STATE_GROUPED = 'STATE_GROUPED';
 
     return regex;
 }));
