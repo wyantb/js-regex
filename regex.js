@@ -212,6 +212,9 @@
         if (this._state === STATE_CAPTURE) {
             throw new Error('capturing twice in a row is pointless');
         }
+        if (name === 'match') {
+            throw new Error('the capture group \'match\' represents the entire match group, and cannot be used as a custom named group');
+        }
 
         if (!this._captureFlag) {
             this._captureStack.push(name);
@@ -225,10 +228,10 @@
         var state = this._state;
         this._state = STATE_CAPTURE;
 
-        if (state === STATE_NONCAPTURE) {
+        switch (state) {
+        case STATE_NONCAPTURE:
             return this._setLast(this._getLast().replace('(?:', '('));
-        }
-        else {
+        default:
             return this._setLast('(' + this._getLast() + ')');
         }
     };
@@ -792,7 +795,7 @@
         }
 
         var result = {
-            result: execed[0]
+            match: execed[0]
         };
 
         for (var i = 1, len = execed.length; i < len; i++) {

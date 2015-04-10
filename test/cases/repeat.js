@@ -254,4 +254,14 @@ test('with macros', function () {
 
     strictEqual(result, '(?:abc(?=def))*', 'followedBy() based macro');
 
+    result = regex()
+        .sequence()
+            .literals('abc').capture()
+            .literals('def').capture()
+        .endSequence()
+          .repeat().capture()
+        .peek();
+
+    strictEqual(result, '((?:(abc)(def))*)', 'generate minimal capture, even when capturing a repeated sequence');
+
 });

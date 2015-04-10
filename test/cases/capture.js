@@ -13,25 +13,19 @@ test('Basic usage', function () {
         .literals('b').capture('theB')
         .exec('ab');
 
-    strictEqual(result.result, 'ab', 'whole result captured');
+    strictEqual(result.match, 'ab', 'whole result captured');
     strictEqual(result.theA, 'a', 'partial capture - a');
     strictEqual(result.theB, 'b', 'partial capture - b');
-
-    try {
-        result = regex()
-            .literals('aaa').capture('first').capture('second')
-            .exec('aaa');
-        ok(false);
-    } catch (err) {
-        ok(true, 'Capturing twice in a row is pointless.');
-    }
 
     result = regex()
         .literals('aa').capture('first')
           .repeat().capture('second')
+        .call(function (regb) {
+            strictEqual(regb.peek(), '((aa)*)', 'generated nicely nested regex');
+        })
         .exec('aaaaaa');
 
-    strictEqual(result.result, 'aaaaaa', 'whole result captured');
+    strictEqual(result.match, 'aaaaaa', 'whole result captured');
     strictEqual(result.first, 'aa', 'partial capture - aa');
     strictEqual(result.second, 'aaaaaa', 'full capture - aaaaaa');
 
@@ -41,7 +35,7 @@ test('Basic usage', function () {
           .repeat(2, 2).capture('third')
         .exec('abababab');
 
-    strictEqual(result.result, 'abababab', 'whole result captured');
+    strictEqual(result.match, 'abababab', 'whole result captured');
     strictEqual(result.first, 'ab', 'partial capture - ab');
     strictEqual(result.second, 'abab', 'partial capture - abab');
     strictEqual(result.third, 'abababab', 'full capture - abababab');
@@ -49,5 +43,25 @@ test('Basic usage', function () {
     // .sequence(...capture(2)).capture(1)
     // .either(...capture(2)).capture(1)
 
+});
+
+test('Banned uses', function () {
+    'use strict';
+
+    try {
+        regex()
+            .literals('aaa').capture('first').capture('second')
+            .exec('aaa');
+        ok(false);
+    } catch (err) {
+        ok(true, 'Capturing twice in a row is pointless.');
+    }
+
+    try {
+        regex().literal('a').capture('match');
+        ok(false, 'should have failed');
+    } catch (err) {
+        ok(true, 'Cannot use \'match\' capture group, as that is special');
+    }
 });
 
