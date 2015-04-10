@@ -2,6 +2,7 @@
 module('Alternate usage patterns');
 
 test('Functions from root', function () {
+    'use strict';
 
     var result;
 
@@ -97,6 +98,7 @@ test('Functions from root', function () {
 });
 
 test('Basics', function () {
+    'use strict';
 
     var result;
 

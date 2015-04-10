@@ -21,7 +21,6 @@ module.exports = function (grunt) {
             src: 'regex.js',
             tests: {
                 options: _.defaults({
-                    strict: false,
                     globals: {
                         module: true,
                         test: true,

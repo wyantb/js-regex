@@ -4,6 +4,7 @@
 module('Readme examples');
 
 test('API Demonstration', function () {
+    'use strict';
 
     var result;
 
@@ -179,6 +180,7 @@ test('API Demonstration', function () {
 });
 
 test('Complex Examples', function () {
+    'use strict';
 
     var result = '';
 

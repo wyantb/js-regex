@@ -4,6 +4,7 @@
 module('or() cases');
 
 test('basic usage', function () {
+    'use strict';
 
     var result;
 
@@ -19,6 +20,7 @@ test('basic usage', function () {
 });
 
 test('literals before and after', function () {
+    'use strict';
 
     var result;
 
@@ -56,6 +58,7 @@ test('literals before and after', function () {
 });
 
 test('literals before and after, but no wrap needed', function () {
+    'use strict';
 
     var result;
 
@@ -89,6 +92,7 @@ test('literals before and after, but no wrap needed', function () {
 });
 
 test('capturing or()', function () {
+    'use strict';
 
     var result;
 

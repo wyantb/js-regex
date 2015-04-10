@@ -1,7 +1,10 @@
 
+/*global test,ok,regex,strictEqual*/
+
 module('repeat() tests');
 
 test('basics', function () {
+    'use strict';
 
     var result;
 
@@ -50,6 +53,7 @@ test('basics', function () {
 });
 
 test('preceded by every token', function () {
+    'use strict';
 
     var result;
 
@@ -166,6 +170,7 @@ test('preceded by every token', function () {
 });
 
 test('with macros', function () {
+    'use strict';
 
     var result;
 

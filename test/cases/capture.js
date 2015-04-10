@@ -1,7 +1,11 @@
 
+/*global test,strictEqual,ok,regex*/
+
 module('Capture tests');
 
 test('Basic usage', function () {
+    'use strict';
+
     var result;
 
     result = regex()
