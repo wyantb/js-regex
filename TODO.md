@@ -1,4 +1,5 @@
-===Minor Refactors===
+Minor Refactors
+---------------
 
 * I have a feeling that STATE_GROUPED is unnecessary
   - If _lastCapturePoint was expressed better (e.g. it updated it itself), .capture could rely on that
@@ -7,7 +8,8 @@
   - _states and _numPurged especially odd; a group once visited chars, so that's what it is now?
 * If I just drew a network diagram of all the states and their possible transitions...
 
-===More Major Refactor===
+More Major Refactor
+---------------
 
 Actually, better idea.  Also gets rid of some state.
 Right now, a node has `_current` and `_last`.  If I just made an array of the pieces, something like:
