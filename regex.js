@@ -1,4 +1,6 @@
 
+/*global define*/
+
 /**!
  * js-regex: a chainable regex building library for Javascript.
  *
@@ -6,7 +8,25 @@
  * @license   http://opensource.org/licenses/MIT
 **/
 
-(function (root, undefined) {
+(function (root, factory) {
+    'use strict';
+    if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module, also provide global
+        define([], function () {
+            /*jshint -W093*/
+            return (root.regex = factory());
+            /*jshint +W093*/
+        });
+    } else if (typeof exports === 'object') {
+        // Node. Does not work with strict CommonJS, but
+        // only CommonJS-like enviroments that support module.exports,
+        // like Node.
+        module.exports = factory();
+    } else {
+        // Browser globals
+        root.regex = factory();
+    }
+}(this, function () {
     'use strict';
 
     // -----------------------
@@ -841,17 +861,6 @@
     var STATE_ANY = 'STATE_ANY';
     var STATE_OPTIONAL = 'STATE_OPTIONAL';
 
-    /*global define:true */
-    if (typeof define === 'function' && define.amd) {
-        define([], regex);
-    }
-    /*global module:true */
-    else if (typeof module !== 'undefined' && module.exports) {
-        module.exports = regex;
-    }
-    else {
-        root.regex = regex;
-    }
-
-}(this));
+    return regex;
+}));
 
