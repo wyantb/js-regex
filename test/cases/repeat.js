@@ -11,9 +11,26 @@ test('basics', function () {
     result = regex()
         .literals('abc')
         .repeat()
-        .peek();
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:abc)*', 'will start out non-grouped');
+        })
+        .capture()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '((?:abc)*)', 'but capturing would then add a group');
+        });
 
-    strictEqual(result, '(?:abc)*');
+    result = regex()
+        .literals('abc')
+        .clone()
+        .repeat()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:abc)*', 'will start out non-grouped');
+        })
+        .clone()
+        .capture()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '((?:abc)*)', 'but capturing would then add a group');
+        });
 
     result = regex()
         .literals('abc')

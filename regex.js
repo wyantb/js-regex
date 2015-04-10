@@ -88,6 +88,11 @@
         makeFlags(this);
     };
 
+    RegexBase.clone = function clone() {
+        var newRe = regex();
+        return deepExtend(newRe, this);
+    };
+
     RegexBase._getMacro = function _getMacro(name) {
         return this._macros[name] || this._parent._getMacro(name);
     };
@@ -847,22 +852,38 @@
         return literals;
     }
 
-    function flatten(arry) {
-        var result = [];
+    function deepExtend(target, src, depth) {
+        var value, prop;
+        for (prop in src) {
+            if (src.hasOwnProperty(prop)) {
+                value = src[prop];
+
+                if (value instanceof Array) {
+                    target[prop] = copy(value);
+                }
+                else if (value instanceof Function) {
+                    // ignore; only used where target should win over source (i.e., bound fns)
+                }
+                else if (value instanceof Object) {
+                    target[prop] = deepExtend({}, value, true);
+                }
+                else {
+                    target[prop] = value;
+                }
+            }
+        }
+        return target;
+    }
+    function copy(arry) {
+        var result = new Array(arry.length);
         for (var i = 0, len = arry.length; i < len; i++) {
-            var val = arry[i];
-            if (typeof val === 'array') {
-                result = result.concat(flatten(val));
-            }
-            else {
-                result.push(val);
-            }
+            result[i] = arry[i];
         }
         return result;
     }
 
     function getCached(node) {
-        node._captures = flatten(node._captureStack);
+        node._captures = copy(node._captureStack);
 
         var regex = node._cache[node._current];
         if (!regex) {
