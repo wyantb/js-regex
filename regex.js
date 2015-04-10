@@ -84,7 +84,6 @@
         this._lastCapturePoint = 0;
 
         this._parent = _parent || {};
-        this._cache =  this._parent._cache  || {};
         this._macros = {};
 
         makeFlags(this);
@@ -777,7 +776,7 @@
     RegexRoot.test = function test(string) {
         this._purgeLast(false);
 
-        return getCached(this).test(string);
+        return toRegExp(this).test(string);
     };
 
     RegexRoot.replace = function replace(string, callback) {
@@ -791,13 +790,13 @@
         this._purgeLast(false);
 
         var node = this;
-        return string.replace(getCached(this), function () {
+        return string.replace(toRegExp(this), function () {
             var args = Array.prototype.slice.call(arguments, 1);
 
             var callbackHash = {};
 
             for (var i = 0, len = args.length; i < len; i++) {
-                var name = node._captures[i];
+                var name = node._captureStack[i];
                 callbackHash[name] = args[i];
             }
 
@@ -812,7 +811,7 @@
 
         this._purgeLast(false);
 
-        var execed = getCached(this).exec(string);
+        var execed = toRegExp(this).exec(string);
 
         if (!execed) {
             return null;
@@ -823,7 +822,7 @@
         };
 
         for (var i = 1, len = execed.length; i < len; i++) {
-            var name = this._captures[i - 1];
+            var name = this._captureStack[i - 1];
             result[name] = execed[i];
         }
 
@@ -833,11 +832,6 @@
     RegexRoot._reClear = function () {
         this._purgeLast(false);
         this._current = '';
-        return this;
-    };
-
-    RegexRoot._cacheClear = function() {
-        this._cache = {};
         return this;
     };
 
@@ -914,17 +908,8 @@
         }
     }
 
-    function getCached(node) {
-        node._captures = copy(node._captureStack);
-
-        var regex = node._cache[node._current];
-        if (!regex) {
-            regex = node._cache[node._current] = new RegExp(node._current, node._flags);
-        }
-
-        // TODO option to disable this
-        regex.lastIndex = 0;
-        return regex;
+    function toRegExp(node) {
+        return new RegExp(node._current);
     }
 
     function applyArgs(reNode, args) {
