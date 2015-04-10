@@ -51,12 +51,14 @@ test('Basic usage', function () {
     strictEqual(result.outer, 'abcabcabc', 'grabbed repeated outer portion exactly');
 });
 
+// TODO honestly, I should be generating more minimal test cases than this.  You want to debug this thing?
 test('with a sequence, lots of edge cases in one shot', function () {
     'use strict';
 
     var result;
+    var partialBuilt;
 
-    result = regex()
+    partialBuilt = regex()
         .literals('QUEL').capture('startbit')
         .sequence()
             .literals('abc').capture('sequence-1')
@@ -64,12 +66,15 @@ test('with a sequence, lots of edge cases in one shot', function () {
         .endSequence()
         .call(function (rb) {
             strictEqual(rb.peek(), '(QUEL)(abc)(def)', 'generated both captures in the sequence');
-        })
+        });
+
+    result =
+        partialBuilt.clone()
           .capture('wholeseq')
         .call(function (rb) {
             strictEqual(rb.peek(), '(QUEL)((abc)(def))', 'and further, generated the repeat and capture group');
         })
-          .literals('POST')
+        .literals('POST')
         .exec('PREQUELabcdefPOSTQUEL');
 
     strictEqual(result.match, 'QUELabcdefPOST', 'grabbed relevant parts defined by sequence, literals');
@@ -78,9 +83,45 @@ test('with a sequence, lots of edge cases in one shot', function () {
     strictEqual(result['sequence-2'], 'def', 'grabbed second part from sequence');
     strictEqual(result.wholeseq, 'abcdef', 'wholeseq got the repeated part');
 
+    result =
+        partialBuilt.clone()
+          .repeat().capture('repeated')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(QUEL)((?:(abc)(def))*)', 'generated proper capture/non-capture groups');
+        })
+        .exec('QUELabcdefabcdef');
+
+    strictEqual(result.match, 'QUELabcdefabcdef', 'variant2 | grabbed relevant parts defined by sequence, literals');
+    strictEqual(result.startbit, 'QUEL', 'variant2 | grabbed precursor to sequence');
+    strictEqual(result['sequence-1'], 'abc', 'variant2 | grabbed first part from sequence');
+    strictEqual(result['sequence-2'], 'def', 'variant2 | grabbed second part from sequence');
+    strictEqual(result.repeated, 'abcdefabcdef', 'variant2 | wholeseq got the repeated part');
+
     // .sequence(...capture(2)).capture(1)
     // .either(...capture(2)).capture(1)
 
+});
+
+test('capturing eithers and before/after', function () {
+    'use strict';
+
+    var result;
+
+    result = regex()
+        .literals('1').capture('prequel')
+        .either()
+            .literals('a').capture('theA')
+            .literals('b').capture('theB')
+        .endEither()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(1)(?:(a)|(b))');
+        })
+        .exec('1a');
+
+    strictEqual(result.match, '1a');
+    strictEqual(result.prequel, '1');
+    strictEqual(result.theA, 'a');
+    strictEqual(result.theB, undefined);
 });
 
 test('Banned uses', function () {

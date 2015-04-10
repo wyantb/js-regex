@@ -684,6 +684,7 @@
     RegexEither._close = function _close(alwaysPurgeOr) {
         this._newState = this._state;
         this._purgeLast(alwaysPurgeOr);
+
         if (this._needsGrouping && this._isActuallyOr) {
             // see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture
             this._state = STATE_OPENNONCAPTURE;
@@ -692,7 +693,15 @@
         else if (this._isActuallyOr) {
             this._state = STATE_OR;
         }
+
         return this;
+    };
+
+    RegexEither._apply = function _apply(node) {
+        node._lastCapturePoint = node._captureStack.length;
+        pushAll(node._captureStack, this._captureStack);
+
+        return RegexBase._apply.call(this, node);
     };
 
     RegexEither.peek = function peek() {
