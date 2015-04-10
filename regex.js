@@ -79,7 +79,9 @@
         this._state = STATE_EMPTY;
         this._states = {};
         this._numPurged = 0;
+
         this._captureStack = [];
+        this._lastCapturePoint = 0;
 
         this._parent = _parent || {};
         this._cache =  this._parent._cache  || {};
@@ -223,7 +225,7 @@
         case STATE_CAPTURE:
         case STATE_REPEAT:
         case STATE_GROUPED:
-            this._captureStack.unshift(name);
+            this._captureStack.splice(this._lastCapturePoint, 0, name);
             break;
         default:
             this._captureStack.push(name);
@@ -613,6 +615,7 @@
             node._state = this._state;
         }
 
+        node._lastCapturePoint = node._captureStack.length;
         pushAll(node._captureStack, this._captureStack);
 
         return node._setLast(this._current);

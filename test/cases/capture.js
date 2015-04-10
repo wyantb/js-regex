@@ -51,27 +51,29 @@ test('Basic usage', function () {
     strictEqual(result.outer, 'abcabcabc', 'grabbed repeated outer portion exactly');
 });
 
-test('with a sequence', function () {
+test('with a sequence, lots of edge cases in one shot', function () {
     'use strict';
 
     var result;
 
     result = regex()
+        .literals('QUEL').capture('startbit')
         .sequence()
             .literals('abc').capture('sequence-1')
             .literals('def').capture('sequence-2')
         .endSequence()
         .call(function (rb) {
-            strictEqual(rb.peek(), '(abc)(def)', 'generated both captures in the sequence');
+            strictEqual(rb.peek(), '(QUEL)(abc)(def)', 'generated both captures in the sequence');
         })
           .capture('wholeseq')
         .call(function (rb) {
-            strictEqual(rb.peek(), '((abc)(def))', 'and further, generated the repeat and capture group');
+            strictEqual(rb.peek(), '(QUEL)((abc)(def))', 'and further, generated the repeat and capture group');
         })
           .literals('POST')
-        .exec('PREQUELabcdefabcdefPOSTQUEL');
+        .exec('PREQUELabcdefPOSTQUEL');
 
-    strictEqual(result.match, 'abcdefPOST', 'grabbed relevant parts defined by sequence, literals');
+    strictEqual(result.match, 'QUELabcdefPOST', 'grabbed relevant parts defined by sequence, literals');
+    strictEqual(result.startbit, 'QUEL', 'grabbed precursor to sequence');
     strictEqual(result['sequence-1'], 'abc', 'grabbed first part from sequence');
     strictEqual(result['sequence-2'], 'def', 'grabbed second part from sequence');
     strictEqual(result.wholeseq, 'abcdef', 'wholeseq got the repeated part');
