@@ -124,7 +124,7 @@
         this._newState = STATE_CHARACTER;
         this._purgeLast(true);
 
-        return this._setLast(getLiteral(character));
+        return this._setLast(getNormalLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
@@ -330,7 +330,7 @@
         this._purgeLast(true);
 
         // TODO -
-        return this._setLast('[' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
+        return this._setLast('[' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']');
     };
 
     regex.anyFrom = function anyFrom(firstChar, secondChar) {
@@ -350,7 +350,7 @@
         this._purgeLast(true);
 
         if (arguments.length) {
-            return this._setLast('[' + getLiterals(characters) + ']');
+            return this._setLast('[' + getSetLiterals(characters) + ']');
         }
         else {
             var newSet = Object.create(RegexAny);
@@ -381,7 +381,7 @@
         this._purgeLast(true);
 
         // TODO -
-        return this._setLast('[^' + getLiteral(firstChar) + '-' + getLiteral(secondChar) + ']');
+        return this._setLast('[^' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']');
     };
 
     regex.noneFrom = function noneFrom(firstChar, secondChar) {
@@ -401,7 +401,7 @@
         this._purgeLast(true);
 
         if (arguments.length) {
-            return this._setLast('[^' + getLiterals(characters) + ']');
+            return this._setLast('[^' + getSetLiterals(characters) + ']');
         }
         else {
             var newSet = Object.create(RegexNone);
@@ -764,21 +764,35 @@
     // -----------------------
 
     var specialCharacters = '\\^$*+?(){}[]|.';
+    var specialSetCharacters = specialCharacters + '-';
 
-    function getLiteral(character) {
+    function getLiteral(character, specialSet) {
         if (typeof character !== 'string') {
             throw new Error('the literal() and literals() functions only takes Strings');
         }
         if (character.length !== 1) {
             throw new Error('only one characteer can be given for literal()');
         }
-        return specialCharacters.indexOf(character) === -1 ? character : '\\' + character;
+        return specialSet.indexOf(character) === -1 ? character : '\\' + character;
+    }
+    function getNormalLiteral(character) {
+        return getLiteral(character, specialCharacters);
+    }
+    function getSetLiteral(character) {
+        return getLiteral(character, specialSetCharacters);
     }
 
     function getLiterals(string) {
         var literals = '';
         for (var i = 0, len = string.length; i < len; i++) {
-            literals += getLiteral(string[i]);
+            literals += getNormalLiteral(string[i]);
+        }
+        return literals;
+    }
+    function getSetLiterals(string) {
+        var literals = '';
+        for (var i = 0, len = string.length; i < len; i++) {
+            literals += getSetLiteral(string[i]);
         }
         return literals;
     }
