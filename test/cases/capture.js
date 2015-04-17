@@ -116,7 +116,7 @@ test('capturing eithers and before/after', function () {
         .call(function (rb) {
             strictEqual(rb.peek(), '(1)(?:(a)|(b))');
         })
-        .exec('1a');
+        .exec('b1a');
 
     strictEqual(result.match, '1a');
     strictEqual(result.prequel, '1');

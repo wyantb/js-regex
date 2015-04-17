@@ -1,5 +1,5 @@
 
-/*global regex */
+/*global regex,test,strictEqual,ok */
 
 module('Readme examples');
 

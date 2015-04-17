@@ -64,7 +64,7 @@
         else if (arguments.length > 1) {
             macro = regex._macros[name] = Object.create(RegexMacro);
             macro._init(regex);
-            applyArgs(macro, Array.prototype.slice.call(arguments, 1));
+            applyArgs(macro, rest(arguments));
             macro.endMacro();
             return regex;
         }
@@ -98,12 +98,8 @@
         return this._macros[name] || this._parent._getMacro(name);
     };
 
-    RegexBase._purgeLast = function _purgeLast(alwaysPurgeOr) {
-        var newPortion = this._last;
-        if (alwaysPurgeOr && this._state === STATE_OR) {
-            newPortion = '(?:' + newPortion + ')';
-        }
-        this._current += newPortion;
+    RegexBase._purgeLast = function _purgeLast() {
+        this._current += this._last;
         this._last = '';
 
         this._numPurged++;
@@ -122,18 +118,23 @@
         return this._last;
     };
 
-    RegexBase._close = function _close(alwaysPurgeOr) {
+    RegexBase._close = function _close() {
         this._newState = this._state;
-        return this._purgeLast(alwaysPurgeOr);
+        return this._purgeLast();
     };
 
     RegexBase._apply = function _apply(node) {
         node._state = this._state;
+
+        if (node._current && needsOrNoncapture(this)) {
+            this._current = '(?:' + this._current + ')';
+        }
+
         return node._setLast(this._current);
     };
 
-    RegexBase._closeAndApply = function _closeAndApply(node, alwaysPurgeOr) {
-        this._close(alwaysPurgeOr);
+    RegexBase._closeAndApply = function _closeAndApply(node) {
+        this._close();
         return this._apply(node);
     };
 
@@ -143,7 +144,7 @@
     };
 
     RegexBase.peek = function peek() {
-        return this._current + this._getLast();
+        return renderNodes([this._current, this._last]);
     };
 
     RegexBase.literal = function literal(character) {
@@ -186,7 +187,7 @@
         else {
             var reBase = Object.create(RegexGroup);
             reBase._init(this);
-            applyArgs(reBase, Array.prototype.slice.call(arguments, 0));
+            applyArgs(reBase, copy(arguments));
             return reBase._closeAndApply(this, true);
         }
     };
@@ -196,7 +197,7 @@
         reSeq._init(regex);
 
         if (arguments.length) {
-            applyArgs(reSeq, Array.prototype.slice.call(arguments, 0));
+            applyArgs(reSeq, copy(arguments));
         }
 
         return reSeq;
@@ -233,10 +234,10 @@
 
         this._state = STATE_CAPTURE;
 
-        switch (state) {
-        case STATE_OPENNONCAPTURE:
+        if (identifyState(this._last) === STATE_OPENNONCAPTURE) {
             return this._setLast(this._getLast().replace('(?:', '('));
-        default:
+        }
+        else {
             return this._setLast('(' + this._getLast() + ')');
         }
     };
@@ -464,29 +465,27 @@
     };
 
     RegexBase.or = RegexBase.either = function either(/* Optional: [literals|RegexBase] */) {
-        var mustAddNonCapture = this._state !== STATE_EMPTY;
-
         this._purgeLast(true);
 
         if (!arguments.length) {
             var newOr = Object.create(RegexEither);
-            newOr._init(this, mustAddNonCapture);
+            newOr._init(this);
             return newOr;
         }
         else {
             var reOr = Object.create(RegexEither);
-            reOr._init(this, mustAddNonCapture);
-            applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
+            reOr._init(this);
+            applyArgs(reOr, copy(arguments));
             return reOr._closeAndApply(this, true);
         }
     };
 
     regex.or = regex.either = function either(/* Optional: [literals|RegexBase] */) {
         var reOr = Object.create(RegexEither);
-        reOr._init(regex, false);
+        reOr._init(regex);
 
         if (arguments.length) {
-            applyArgs(reOr, Array.prototype.slice.call(arguments, 0));
+            applyArgs(reOr, copy(arguments));
         }
 
         return reOr;
@@ -641,9 +640,9 @@
     delete RegexCharacterSet.capture;
     delete RegexCharacterSet.repeat;
 
-    RegexCharacterSet._close = function _close(alwaysPurgeOr) {
+    RegexCharacterSet._close = function _close() {
         this._state = STATE_ANY;
-        RegexBase._close.call(this, alwaysPurgeOr);
+        RegexBase._close.call(this);
 
         var setFlags = this._excludeFlag ? '[^' : '[';
         this._current = setFlags + this._current + ']';
@@ -664,15 +663,12 @@
 
     var RegexEither = Object.create(RegexBase);
 
-    RegexEither._init = function _init(_parent, _needsGrouping) {
+    RegexEither._init = function _init(_parent) {
         RegexGroup._init.call(this, _parent);
-        this._isActuallyOr = false;
-        this._needsGrouping = _needsGrouping;
     };
 
     RegexEither._purgeLast = function _purgeLast() {
         if (this._current) {
-            this._isActuallyOr = true;
             this._current += '|';
         }
         RegexGroup._purgeLast.call(this, true);
@@ -680,16 +676,11 @@
         return this;
     };
 
-    RegexEither._close = function _close(alwaysPurgeOr) {
+    RegexEither._close = function _close() {
         this._newState = this._state;
-        this._purgeLast(alwaysPurgeOr);
+        this._purgeLast();
 
-        if (this._needsGrouping && this._isActuallyOr) {
-            // see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture
-            this._state = STATE_OPENNONCAPTURE;
-            this._current = '(?:' + this._current + ')';
-        }
-        else if (this._isActuallyOr) {
+        if (needsOrNoncapture(this)) {
             this._state = STATE_OR;
         }
 
@@ -719,9 +710,9 @@
 
     var RegexFollowedBy = Object.create(RegexBase);
 
-    RegexFollowedBy._close = function _close(alwaysPurgeOr) {
+    RegexFollowedBy._close = function _close() {
         this._state = STATE_FOLLOWEDBY;
-        RegexBase._close.call(this, alwaysPurgeOr);
+        RegexBase._close.call(this);
 
         var notFlags = this._notFlag ? '(?!' : '(?=';
         this._current = notFlags + this._current + ')';
@@ -767,7 +758,7 @@
         else if (arguments.length > 1) {
             macro = this._macros[name] = Object.create(RegexMacro);
             macro._init(this);
-            applyArgs(macro, Array.prototype.slice.call(arguments, 1));
+            applyArgs(macro, rest(arguments));
             macro.endMacro();
             return this;
         }
@@ -791,7 +782,7 @@
 
         var node = this;
         return string.replace(toRegExp(this), function () {
-            var args = Array.prototype.slice.call(arguments, 1);
+            var args = rest(arguments);
 
             var callbackHash = {};
 
@@ -895,13 +886,21 @@
         }
         return target;
     }
-    function copy(arry) {
-        var result = new Array(arry.length);
-        for (var i = 0, len = arry.length; i < len; i++) {
-            result[i] = arry[i];
+
+    function copyFrom(arry, idx) {
+        var result = new Array(arry.length - idx);
+        for (var i = 0, len = arry.length - idx; i < len; i++) {
+            result[i] = arry[i + idx];
         }
         return result;
     }
+    function copy(arry) {
+        return copyFrom(arry, 0);
+    }
+    function rest(arry) {
+        return copyFrom(arry, 1);
+    }
+
     function pushAll(arr1, arr2) {
         for (var i = 0, len = arr2.length; i < len; i++) {
             arr1.push(arr2[i]);
@@ -921,12 +920,7 @@
             else if (RegexBase.isPrototypeOf(arg) || RegexFlags.isPrototypeOf(arg)) {
                 reNode._newState = reNode._state;
                 reNode._purgeLast(true);
-
-                var mustAddNonCapture = reNode._state !== STATE_EMPTY;
-                var oldNeedsGrouping = arg._needsGrouping;
-                arg._needsGrouping = mustAddNonCapture;
                 arg._closeAndApply(reNode);
-                arg._needsGrouping = oldNeedsGrouping;
             }
             else {
                 throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
@@ -934,13 +928,84 @@
         }
     }
 
+    function contains(str, match) {
+        return str.indexOf(match) !== -1;
+    }
+    function startsWith(str, match) {
+        return str.indexOf(match) === 0;
+    }
+    function endsWith(str, match) {
+        return str.indexOf(match) === (str.length - match.length);
+    }
+    function identifyState(snippet) {
+        if (snippet.length === 0) {
+            return STATE_EMPTY;
+        }
+        else if (snippet.length === 1) { // TODO FIXME could be true with unicode or flags, also
+            return STATE_CHARACTER;
+        }
+        else if (endsWith(snippet, '*') || endsWith(snippet, '?')) {
+            return STATE_MODIFIEDTERM;
+        }
+        else if (startsWith(snippet, '(?:')) {
+            return STATE_OPENNONCAPTURE;
+        }
+        else if (endsWith(snippet, ')')) {
+            return STATE_CLOSEDGROUP;
+        }
+        else if (contains(snippet, '|')) {
+            return STATE_OR;
+        }
+        return STATE_TERM;
+    }
+    function needsOrNoncapture(rb) {
+        return identifyState(rb._current) === STATE_OR;
+    }
+
+    function hasNonEmptyNeighborNode(nodes, i) {
+        if (i > 0 && identifyState(nodes[i - 1]) !== STATE_EMPTY) {
+            return true;
+        }
+        if (i < (nodes.length - 1) && identifyState(nodes[i + 1]) !== STATE_EMPTY) {
+            return true;
+        }
+        return false;
+
+    }
+    function renderNodes(nodes) {
+        var rendered = '';
+        for (var i = 0, len = nodes.length; i < len; i++) {
+            var node = nodes[i];
+
+            if ((identifyState(node) === STATE_OR) && hasNonEmptyNeighborNode(nodes, i)) {
+                rendered += '(?:' + node + ')';
+            }
+            else {
+                rendered += node;
+            }
+        }
+        return rendered;
+    }
+
+    // TODO FIXME exclude from 'production' builds, if I make that a thing
+    regex._identifyState = identifyState;
+
+    /** catchall state - generally, when I don't know what to make of a thing, but also, that it doesn't matter anyway */
+    var STATE_TERM = 'STATE_TERM';
+    /** catchall group state - when I know I have some kind of group, but don't care what type */
+    var STATE_CLOSEDGROUP = 'STATE_CLOSEDGROUP';
+    /** literally empty */
     var STATE_EMPTY = 'STATE_EMPTY';
+    /** last token is non empty and included an | symbol */
+    var STATE_OR = 'STATE_OR';
+    /** see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture */
+    var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
+    /** like *, or {}, or ? after a term */
+    var STATE_MODIFIEDTERM = 'STATE_MODIFIEDTERM';
     var STATE_CHARACTER = 'STATE_CHARACTER';
     var STATE_CHARACTERS = 'STATE_CHARACTERS';
-    var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
-    var STATE_OR = 'STATE_OR';
     var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     var STATE_ANY = 'STATE_ANY';
     var STATE_OPTIONAL = 'STATE_OPTIONAL';
