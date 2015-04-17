@@ -1,5 +1,4 @@
-
-/*global test,regex,strictEqual*/
+/*global test,regex,strictEqual,module*/
 
 module('any()');
 

@@ -1,5 +1,4 @@
-
-/*global define*/
+/*global define,module*/
 
 /**!
  * js-regex: a chainable regex building library for Javascript.

@@ -1,5 +1,4 @@
-
-/*global test,ok,regex,strictEqual*/
+/*global test,ok,regex,strictEqual,module*/
 
 module('repeat() tests');
 

@@ -1,5 +1,4 @@
-
-/*global test,strictEqual,ok,regex*/
+/*global test,strictEqual,ok,regex,module*/
 
 module('Capture tests');
 

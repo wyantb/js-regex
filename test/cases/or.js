@@ -1,4 +1,4 @@
-/*global regex,test,strictEqual */
+/*global regex,test,strictEqual,module*/
 
 module('or() cases');
 

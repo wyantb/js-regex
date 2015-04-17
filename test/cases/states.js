@@ -1,4 +1,4 @@
-/*global test,ok,regex,strictEqual,notStrictEqual*/
+/*global test,ok,regex,strictEqual,notStrictEqual,module*/
 
 module('direct state tests');
 

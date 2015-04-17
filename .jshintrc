@@ -1,5 +1,4 @@
 {
-    "node": true,
     "browser": true,
     "esnext": true,
     "bitwise": true,
@@ -17,5 +16,8 @@
     "strict": true,
     "trailing": true,
     "smarttabs": true,
-    "eqnull": true
+    "eqnull": true,
+    "browser": false,
+    "devel": false,
+    "globals": {}
 }

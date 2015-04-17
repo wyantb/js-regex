@@ -1,3 +1,4 @@
+/*global module,test,regex,ok,strictEqual,module*/
 
 module('Alternate usage patterns');
 

@@ -2,7 +2,6 @@
 module.exports = function (grunt) {
     'use strict';
 
-    var _ = grunt.util._;
     var jshintOptions = grunt.file.readJSON('.jshintrc');
 
     grunt.initConfig({
@@ -19,18 +18,7 @@ module.exports = function (grunt) {
         jshint: {
             options: jshintOptions,
             src: 'regex.js',
-            tests: {
-                options: _.defaults({
-                    globals: {
-                        module: true,
-                        test: true,
-                        strictEqual: true,
-                        regex: true,
-                        ok: true
-                    },
-                }, jshintOptions),
-                src: 'test/cases/**/*.js'
-            }
+            tests: 'test/cases/**/*.js'
         },
     });
 
