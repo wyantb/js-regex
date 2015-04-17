@@ -936,26 +936,41 @@
     function endsWith(str, match) {
         return str.indexOf(match) === (str.length - match.length);
     }
+    function endsWithNonEscaped(str, match) {
+        return endsWith(str, match) && !endsWith(str, '\\' + match);
+    }
+    function nullOrEmpty(str) {
+        return str == null || str === '';
+    }
     function identifyState(snippet) {
+        /*jshint -W084*/
+        var execState;
         if (snippet.length === 0) {
             return STATE_EMPTY;
         }
-        else if (snippet.length === 1) { // TODO FIXME could be true with unicode or flags, also
+        if (snippet.length === 1) { // TODO FIXME could be true with unicode or flags, also
             return STATE_CHARACTER;
         }
-        else if (endsWith(snippet, '*') || endsWith(snippet, '?')) {
+        if (endsWithNonEscaped(snippet, '*') || endsWithNonEscaped(snippet, '?')) {
             return STATE_MODIFIEDTERM;
         }
-        else if (startsWith(snippet, '(?:')) {
+        if (startsWith(snippet, '(?:')) {
             return STATE_OPENNONCAPTURE;
         }
-        else if (endsWith(snippet, ')')) {
+        // see tests/states.js - \( and \) don't defeat the or, but (a|b) does
+        if (contains(snippet, '|')) {
+            execState = /(.?\()?.*\|.*(.\))/.exec(snippet);
+            if (execState == null || nullOrEmpty(execState[1]) || nullOrEmpty(execState[2]) ||
+                (execState[1] === '\\(' && execState[2] === '\\)')) {
+
+                return STATE_OR;
+            }
+        }
+        if (endsWithNonEscaped(snippet, ')')) {
             return STATE_CLOSEDGROUP;
         }
-        else if (contains(snippet, '|')) {
-            return STATE_OR;
-        }
         return STATE_TERM;
+        /*jshint +W084*/
     }
     function needsOrNoncapture(rb) {
         return identifyState(rb._current) === STATE_OR;
