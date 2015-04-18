@@ -1,4 +1,4 @@
-/*global define,module*/
+/*global define,module,console*/
 
 /**!
  * js-regex: a chainable regex building library for Javascript.
@@ -33,9 +33,7 @@
     // -----------------------
 
     var regex = function () {
-        var root = Object.create(RegexRoot);
-        root._init(regex);
-        return root;
+        return Object.create(RegexRoot)._init(regex);
     };
 
     regex._macros = {};
@@ -72,20 +70,13 @@
     var RegexBase = {};
 
     RegexBase._init = function _init(_parent) {
-        this._current = '';
-        this._last = '';
-
-        this._state = STATE_EMPTY;
-        this._states = {};
-        this._numPurged = 0;
-
-        this._captureStack = [];
-        this._lastCapturePoint = 0;
-
+        this._terms = [];
         this._parent = _parent || {};
         this._macros = {};
 
         makeFlags(this);
+
+        return this;
     };
 
     RegexBase.clone = function clone() {
@@ -98,44 +89,91 @@
     };
 
     RegexBase._purgeLast = function _purgeLast() {
-        this._current += this._last;
-        this._last = '';
-
-        this._numPurged++;
-        this._states[this._newState] = true;
-        this._state = this._newState;
-        this._newState = STATE_EMPTY;
+        console.warn('purgeLast -- noop');
         return this;
     };
 
     RegexBase._setLast = function _setLast(last) {
-        this._last = last;
+        console.warn('setLast -- noop');
         return this;
     };
 
     RegexBase._getLast = function _getLast() {
-        return this._last;
+        console.warn('getLast -- noop');
+        return this;
     };
 
     RegexBase._close = function _close() {
-        this._newState = this._state;
-        return this._purgeLast();
+        console.warn('close -- noop');
+        return this;
     };
 
     RegexBase._apply = function _apply(node) {
-        node._state = this._state;
-
-        if (node._current && needsOrNoncapture(this)) {
-            this._current = '(?:' + this._current + ')';
-        }
-
-        return node._setLast(this._current);
+        console.warn('apply -- noop');
+        return this;
     };
 
     RegexBase._closeAndApply = function _closeAndApply(node) {
-        this._close();
-        return this._apply(node);
+        console.warn('closeAndApply -- noop');
+        return this;
     };
+
+    // TODO FIXME this needs to be in class structure
+    function renderNodes(nodes) {
+        var rendered = '';
+        for (var i = 0, len = nodes.length; i < len; i++) {
+            var term = nodes[i].term;
+
+            if ((identifyState(term) === STATE_OR) && hasNonEmptyNeighborNode(nodes, i)) {
+                rendered += '(?:' + term + ')';
+            }
+            else {
+                rendered += term;
+            }
+        }
+        return rendered;
+    }
+    // TODO this needs to be in the class structure FIXME
+    function addTerm(rb, term, typeOverride) {
+        rb._terms.push({
+            captures: [],
+            type: typeOverride,
+            term: term
+        });
+        return rb;
+    }
+
+    function currentTerm(rb) {
+        return rb._terms[rb._terms.length - 1];
+    }
+    function wrapCurrentTerm(rb, pre, post) {
+        var curTerm = currentTerm(rb);
+        curTerm.term = pre + curTerm.term + post;
+        return curTerm;
+    }
+    function replaceCurrentTerm(rb, match, replace) {
+        var curTerm = currentTerm(rb);
+        curTerm.term.replace(match, replace);
+        return rb;
+    }
+    function identifyCurrentTerm(rb) {
+        return identifyState(currentTerm(rb).term);
+    }
+    function addCapture(rb, capture) {
+        currentTerm(rb).captures.push(capture);
+    }
+    function applyArgumentsToNode(proto, node, args) {
+        var toApply = Object.create(proto)._init(node);
+        applyArgs(toApply, args);
+        return addTerm(node, toApply._terms);
+    }
+    function applyArgumentsWithoutNode(proto, args) {
+        var toApply = Object.create(proto)._init(regex);
+        if (args.length) {
+            applyArgs(toApply, args);
+        }
+        return toApply;
+    }
 
     RegexBase.call = function call(callback) {
         callback.call(this, this);
@@ -143,63 +181,41 @@
     };
 
     RegexBase.peek = function peek() {
-        return renderNodes([this._current, this._last]);
+        return renderNodes(this._terms);
     };
 
     RegexBase.literal = function literal(character) {
-        this._newState = STATE_CHARACTER;
-        this._purgeLast(true);
-
-        return this._setLast(getNormalLiteral(character));
+        return addTerm(this, getNormalLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
-        this._newState = string.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
-        this._purgeLast(true);
-
-        return this._setLast(getLiterals(string));
+        return addTerm(this, getLiterals(string));
     };
 
     RegexBase.macro = function macro(name) {
-        this._purgeLast(true);
-
+        console.error('broken');
         var mac = this._getMacro(name);
         mac._apply(this);
         return this;
     };
 
     regex.macro = function macro(name) {
-        var reBase = Object.create(RegexBase);
-        reBase._init(regex);
+        var reBase = Object.create(RegexBase)._init(regex);
         reBase.macro(name);
         return reBase;
     };
 
     RegexBase.seq = RegexBase.sequence = function sequence() {
-        this._purgeLast(true);
-
         if (!arguments.length) {
-            var newSegment = Object.create(RegexGroup);
-            newSegment._init(this);
-            return newSegment;
+            return Object.create(RegexGroup)._init(this);
         }
         else {
-            var reBase = Object.create(RegexGroup);
-            reBase._init(this);
-            applyArgs(reBase, copy(arguments));
-            return reBase._closeAndApply(this, true);
+            return applyArgumentsToNode(RegexGroup, this, copy(arguments));
         }
     };
 
     regex.seq = regex.sequence = function sequence() {
-        var reSeq = Object.create(RegexGroup);
-        reSeq._init(regex);
-
-        if (arguments.length) {
-            applyArgs(reSeq, copy(arguments));
-        }
-
-        return reSeq;
+        return applyArgumentsWithoutNode(RegexGroup, copy(arguments));
     };
 
     RegexBase.capture = function capture(name) {
@@ -219,28 +235,26 @@
             throw new Error('the capture group \'match\' represents the entire match group, and cannot be used as a custom named group');
         }
 
-        var state = this._state;
-        switch (state) {
-        case STATE_CAPTURE:
-        case STATE_REPEAT:
-        case STATE_GROUPED:
-            this._captureStack.splice(this._lastCapturePoint, 0, name);
-            break;
-        default:
-            this._captureStack.push(name);
-            break;
-        }
+        addCapture(this, name);
 
-        this._state = STATE_CAPTURE;
-
-        if (identifyState(this._last) === STATE_OPENNONCAPTURE) {
-            return this._setLast(this._getLast().replace('(?:', '('));
+        if (identifyCurrentTerm(this) === STATE_OPENNONCAPTURE) {
+            return replaceCurrentTerm(this, '(?:', '(');
         }
         else {
-            return this._setLast('(' + this._getLast() + ')');
+            return wrapCurrentTerm(this, '(', ')');
         }
     };
 
+    function maybeWrapInOpennoncapture(rb) {
+        switch (identifyCurrentTerm(rb)) {
+        case STATE_EMPTY:
+        case STATE_CHARACTER:
+            break;
+        default:
+            wrapCurrentTerm(rb, '(?:', ')');
+            break;
+        }
+    }
     RegexBase.repeat = function repeat(min, max) {
         if (this._getLast() === '' || this._state === STATE_EMPTY) {
             throw new Error('nothing to repeat');
@@ -249,37 +263,28 @@
             throw new Error('repeating twice in a row will break JS RegExp');
         }
 
-        switch (this._state) {
-        case STATE_GROUPED:
-        case STATE_CHARACTERS:
-        case STATE_OR:
-            this._setLast('(?:' + this._getLast() + ')');
-            break;
-        }
+        maybeWrapInOpennoncapture(this);
 
         if (!arguments.length) {
-            this._setLast(this._getLast() + '*');
+            return wrapCurrentTerm(this, '', '*');
         }
         else if (arguments.length === 1) {
             if (min === 0) {
-                this._setLast(this._getLast() + '*');
+                return wrapCurrentTerm(this, '', '*');
             }
             else if (min === 1) {
-                this._setLast(this._getLast() + '+');
+                return wrapCurrentTerm(this, '', '+');
             }
             else {
-                this._setLast(this._getLast() + '{' + min + ',}');
+                return wrapCurrentTerm(this, '', '{' + min + ',}');
             }
         }
         else if (min !== max) {
-            this._setLast(this._getLast() + '{' + min + ',' + max + '}');
+            return wrapCurrentTerm(this, '', '{' + min + ',' + max + '}');
         }
         else {
-            this._setLast(this._getLast() + '{' + min + '}');
+            return wrapCurrentTerm(this, '', '{' + min + '}');
         }
-
-        this._state = STATE_REPEAT;
-        return this;
     };
 
     RegexBase.optional = function optional() {
@@ -290,17 +295,8 @@
             throw new Error('marking as optional twice in a row will break JS RegExp');
         }
 
-        switch (this._state) {
-        case STATE_GROUPED:
-        case STATE_CHARACTERS:
-        case STATE_OR:
-            this._setLast('(?:' + this._getLast() + ')');
-            break;
-        }
-
-        this._setLast(this._getLast() + '?');
-        this._state = STATE_OPTIONAL;
-        return this;
+        maybeWrapInOpennoncapture(this);
+        return wrapCurrentTerm(this, '', '?');
     };
 
     RegexBase.followedBy = function followedBy(string) {
@@ -308,28 +304,24 @@
             throw new Error('if specifying arguments for followedBy(), must be a String of literals');
         }
 
-        this._newState = STATE_FOLLOWEDBY;
-        this._purgeLast(true);
-
         if (arguments.length) {
-            return this._setLast('(?=' + getLiterals(string) + ')');
+            return addTerm(this, '(?=' + getLiterals(string) + ')');
         }
         else {
-            var newFollowed = Object.create(RegexIsFollowedBy);
-            newFollowed._init(this);
-            return newFollowed;
+            return Object.create(RegexIsFollowedBy)._init(this);
         }
     };
 
-    regex.followedBy = function followedBy(literals) {
-        var reFollowed = Object.create(RegexIsFollowedBy);
-        reFollowed._init(regex);
-
+    regex.followedBy = function followedBy() {
+        return applyArgumentsWithoutNode(RegexIsFollowedBy, copy(arguments));
+        /* TODO FIXME why did I do this?
+         * same for notfollowed by
         if (literals) {
             reFollowed.literals(literals);
         }
 
         return reFollowed;
+        */
     };
 
     RegexBase.notFollowedBy = function notFollowedBy(string) {
@@ -337,28 +329,16 @@
             throw new Error('if specifying arguments for notFollowedBy(), must be a String of literals');
         }
 
-        this._newState = STATE_FOLLOWEDBY;
-        this._purgeLast(true);
-
         if (arguments.length) {
-            return this._setLast('(?!' + getLiterals(string) + ')');
+            return addTerm(this, '(?!' + getLiterals(string) + ')');
         }
         else {
-            var newFollowed = Object.create(RegexNotFollowedBy);
-            newFollowed._init(this);
-            return newFollowed;
+            return Object.create(RegexNotFollowedBy)._init(this);
         }
     };
 
     regex.notFollowedBy = function notFollowedBy(literals) {
-        var reFollowed = Object.create(RegexNotFollowedBy);
-        reFollowed._init(regex);
-
-        if (literals) {
-            reFollowed.literals(literals);
-        }
-
-        return reFollowed;
+        return applyArgumentsWithoutNode(RegexNotFollowedBy, copy(arguments));
     };
 
     RegexBase.anyFrom = function anyFrom(firstChar, secondChar) {
@@ -366,50 +346,31 @@
             throw new Error('must specify two characters for anyFrom() method');
         }
 
-        this._newState = STATE_ANY;
-        this._purgeLast(true);
-
-        // TODO -
-        return this._setLast('[' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']');
+        // TODO shouldn't this be set literal?  I mean what if you want - to something else
+        var term = '[' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']';
+        return addTerm(this, term);
     };
 
     regex.anyFrom = function anyFrom(firstChar, secondChar) {
-        var reBase = Object.create(RegexBase);
-        reBase._init(regex);
-        reBase.anyFrom(firstChar, secondChar);
-        return reBase;
+        return Object.create(RegexBase)._init(regex).anyFrom(firstChar, secondChar);
     };
 
     RegexBase.any = function any(characters) {
-        // TODO -
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for any(), must be a String of literals');
         }
 
-        this._newState = STATE_ANY;
-        this._purgeLast(true);
-
         if (arguments.length) {
-            return this._setLast('[' + getSetLiterals(characters) + ']');
+            return addTerm(this, '[' + getSetLiterals(characters) + ']');
         }
         else {
-            var newSet = Object.create(RegexAny);
-            newSet._init(this);
-            return newSet;
+            return Object.create(RegexAny)._init(this);
         }
     };
 
+    // TODO call this anyOf?  sounds odd
     regex.any = function any(literals) {
-        var reAny = Object.create(RegexBase);
-        reAny._init(regex);
-
-        if (arguments.length) {
-            reAny.literals(literals);
-            reAny._state = STATE_ANY;
-            reAny._setLast('[' + reAny._getLast() + ']');
-        }
-
-        return reAny;
+        return Object.create(RegexBase)._init(regex).any(literals);
     };
 
     RegexBase.noneFrom = function noneFrom(firstChar, secondChar) {
@@ -417,77 +378,43 @@
             throw new Error('must specify two characters for noneFrom() method');
         }
 
-        this._newState = STATE_ANY;
-        this._purgeLast(true);
-
-        // TODO -
-        return this._setLast('[^' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']');
+        var term = '[^' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']';
+        return addTerm(this, term);
     };
 
     regex.noneFrom = function noneFrom(firstChar, secondChar) {
-        var reBase = Object.create(RegexBase);
-        reBase._init(regex);
-        reBase.noneFrom(firstChar, secondChar);
-        return reBase;
+        return Object.create(RegexBase)._init(regex).noneFrom(firstChar, secondChar);
     };
 
+    // TODO call this noneOf?  sounds odd
     RegexBase.none = function none(characters) {
-        // TODO -
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for none(), must be a String of literals');
         }
 
-        this._newState = STATE_ANY;
-        this._purgeLast(true);
-
         if (arguments.length) {
-            return this._setLast('[^' + getSetLiterals(characters) + ']');
+            return addTerm(this, '[^' + getSetLiterals(characters) + ']');
         }
         else {
-            var newSet = Object.create(RegexNone);
-            newSet._init(this);
-            return newSet;
+            return Object.create(RegexNone)._init(this);
         }
     };
 
     regex.none = function none(literals) {
-        var reNone = Object.create(RegexBase);
-        reNone._init(regex);
-
-        if (arguments.length) {
-            reNone.literals(literals);
-            reNone._state = STATE_ANY;
-            reNone._setLast('[^' + reNone._getLast() + ']');
-        }
-
-        return reNone;
+        return Object.create(RegexBase)._init(regex).none(literals);
     };
 
     RegexBase.or = RegexBase.either = function either(/* Optional: [literals|RegexBase] */) {
-        this._purgeLast(true);
-
         if (!arguments.length) {
-            var newOr = Object.create(RegexEither);
-            newOr._init(this);
-            return newOr;
+            return Object.create(RegexEither)._init(this);
         }
         else {
-            var reOr = Object.create(RegexEither);
-            reOr._init(this);
-            applyArgs(reOr, copy(arguments));
-            return reOr._closeAndApply(this, true);
+            return applyArgumentsToNode(RegexEither, this, copy(arguments));
         }
     };
 
     regex.or = regex.either = function either(/* Optional: [literals|RegexBase] */) {
-        var reOr = Object.create(RegexEither);
-        reOr._init(regex);
-
-        if (arguments.length) {
-            applyArgs(reOr, copy(arguments));
-        }
-
-        return reOr;
+        return applyArgumentsWithoutNode(RegexEither, copy(arguments));
     };
 
     var flagCharacters = {
@@ -511,9 +438,7 @@
     function makeFlags(node) {
         function addFlag(flag) {
             return function flagFn() {
-                node._newState = STATE_CHARACTER;
-                node._purgeLast(true);
-                return node._setLast(flag);
+                return addTerm(node, flag);
             };
         }
 
@@ -527,9 +452,7 @@
                 newFlags += flagCharacters[newFlag];
             }
 
-            node._newState = flagsToAdd.length > 1 ? STATE_CHARACTERS : STATE_CHARACTER;
-            node._purgeLast(true);
-            return node._setLast(newFlags);
+            return addTerm(node, newFlags);
         };
 
         flags.start =                    addFlag('^');
@@ -556,6 +479,7 @@
         // TODO hexadecimal flags
 
         node.f = node.flags = flags;
+        return node;
     }
 
     var RegexFlags = {};
@@ -563,29 +487,6 @@
     RegexFlags.repeat = RegexBase.repeat;
     RegexFlags.capture = RegexBase.capture;
     RegexFlags.optional = RegexBase.optional;
-
-    RegexFlags._purgeLast = function _purgeLast() {
-        this._state = this._newState;
-        return this;
-    };
-
-    RegexFlags._closeAndApply = function _closeAndApply(node) {
-        node._state = this._newState;
-        return node._setLast(this._current);
-    };
-
-    RegexFlags._setLast = function _setLast(last) {
-        this._current = last;
-        return this;
-    };
-
-    RegexFlags._getLast = function _getLast() {
-        return this._current;
-    };
-
-    RegexFlags.peek = function peek() {
-        return this._current;
-    };
 
     Object.defineProperty(regex, 'flags', {
         get: function () {
@@ -598,47 +499,16 @@
 
     var RegexGroup = Object.create(RegexBase);
 
-    RegexGroup._apply = function _apply(node) {
-        if (this._state === STATE_OR) {
-            node._state = STATE_OR;
-        }
-        else if (this._numPurged > 2) {
-            node._state = STATE_GROUPED;
-        }
-        else if (this._states[STATE_CHARACTERS]) {
-            node._state = STATE_CHARACTERS;
-        }
-        else {
-            node._state = this._state;
-        }
-
-        node._lastCapturePoint = node._captureStack.length;
-        pushAll(node._captureStack, this._captureStack);
-
-        return node._setLast(this._current);
-    };
-
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
-        this._newState = this._state;
-        this._purgeLast(false);
-
         if (this._parent !== regex) {
-            return this._apply(this._parent);
+            return addTerm(this._parent, renderNodes(this._terms));
         }
         return this;
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
 
-    delete RegexCharacterSet.noneFrom;
-    delete RegexCharacterSet.none;
-    delete RegexCharacterSet.anyFrom;
-    delete RegexCharacterSet.any;
-    delete RegexCharacterSet.seq;
-    delete RegexCharacterSet.sequence;
-    delete RegexCharacterSet.capture;
-    delete RegexCharacterSet.repeat;
-
+    // TODO FIXME need this in the hierarchy
     RegexCharacterSet._close = function _close() {
         this._state = STATE_ANY;
         RegexBase._close.call(this);
@@ -648,24 +518,27 @@
         return this;
     };
 
-    RegexCharacterSet.end = function end() {
-        return this._closeAndApply(this._parent, true);
-    };
+    // TODO am I really not creative enough to do better?  Not to mention, liskov substitution principle...
+    delete RegexCharacterSet.noneFrom;
+    delete RegexCharacterSet.none;
+    delete RegexCharacterSet.anyFrom;
+    delete RegexCharacterSet.any;
+    delete RegexCharacterSet.seq;
+    delete RegexCharacterSet.sequence;
+    delete RegexCharacterSet.capture;
+    delete RegexCharacterSet.repeat;
 
     var RegexAny = Object.create(RegexCharacterSet);
     RegexAny._excludeFlag = false;
     RegexAny.endAny = RegexAny.end;
 
     var RegexNone = Object.create(RegexCharacterSet);
-    RegexNone._excludeFlag = true;
+    RegexNone._exclueFlag = true;
     RegexNone.endNone = RegexNone.end;
 
     var RegexEither = Object.create(RegexBase);
 
-    RegexEither._init = function _init(_parent) {
-        RegexGroup._init.call(this, _parent);
-    };
-
+    // TODO have to do this sometime
     RegexEither._purgeLast = function _purgeLast() {
         if (this._current) {
             this._current += '|';
@@ -675,24 +548,7 @@
         return this;
     };
 
-    RegexEither._close = function _close() {
-        this._newState = this._state;
-        this._purgeLast();
-
-        if (needsOrNoncapture(this)) {
-            this._state = STATE_OR;
-        }
-
-        return this;
-    };
-
-    RegexEither._apply = function _apply(node) {
-        node._lastCapturePoint = node._captureStack.length;
-        pushAll(node._captureStack, this._captureStack);
-
-        return RegexBase._apply.call(this, node);
-    };
-
+    // TODO have to do this sometime
     RegexEither.peek = function peek() {
         if (this._current && this._getLast()) {
             return this._current + '|' + this._getLast();
@@ -700,6 +556,7 @@
         return RegexBase.peek.call(this);
     };
 
+    // TODO have to do this sometime (need renderNodes in class struct)
     RegexEither.endOr = RegexEither.endEither = RegexEither.end = function end() {
         if (this._parent !== regex) {
             return this._closeAndApply(this._parent, true);
@@ -709,6 +566,7 @@
 
     var RegexFollowedBy = Object.create(RegexBase);
 
+    // TODO need this in the hierarchy
     RegexFollowedBy._close = function _close() {
         this._state = STATE_FOLLOWEDBY;
         RegexBase._close.call(this);
@@ -736,8 +594,6 @@
     delete RegexMacro.endSeq;
 
     RegexMacro.endMacro = RegexMacro.end = function end() {
-        this._newState = this._state;
-        this._purgeLast(false);
         return this._parent;
     };
 
@@ -745,28 +601,25 @@
     var RegexRoot = Object.create(RegexBase);
 
     RegexRoot.addMacro = function addMacro(name) {
-        var macro;
+        /*jshint -W093*/
         if (!arguments.length) {
             throw new Error('addMacro() must be given the name of the macro to create');
         }
         else if (arguments.length === 1) {
-            macro = this._macros[name] = Object.create(RegexMacro);
-            macro._init(this);
-            return macro;
+            return this._macros[name] = Object.create(RegexMacro)._init(this);
         }
         else if (arguments.length > 1) {
-            macro = this._macros[name] = Object.create(RegexMacro);
-            macro._init(this);
+            var macro = this._macros[name] = Object.create(RegexMacro)._init(this);
             applyArgs(macro, rest(arguments));
             macro.endMacro();
             return this;
         }
+        /*jshint +W093*/
     };
 
     RegexRoot.test = function test(string) {
-        this._purgeLast(false);
-
-        return toRegExp(this).test(string);
+        console.warn('test -- noop');
+        return this;
     };
 
     RegexRoot.replace = function replace(string, callback) {
@@ -777,16 +630,15 @@
         // TODO callback can be a string or function
         // TODO can handle capture never getting called
 
-        this._purgeLast(false);
-
         var node = this;
         return string.replace(toRegExp(this), function () {
             var args = rest(arguments);
 
+            var captures = flatten(pluck(node._terms, 'captures'));
             var callbackHash = {};
 
             for (var i = 0, len = args.length; i < len; i++) {
-                var name = node._captureStack[i];
+                var name = captures[i];
                 callbackHash[name] = args[i];
             }
 
@@ -807,22 +659,17 @@
             return null;
         }
 
+        var captures = flatten(pluck(this._terms, 'captures'));
         var result = {
             match: execed[0]
         };
 
         for (var i = 1, len = execed.length; i < len; i++) {
-            var name = this._captureStack[i - 1];
+            var name = captures[i];
             result[name] = execed[i];
         }
 
         return result;
-    };
-
-    RegexRoot._reClear = function () {
-        this._purgeLast(false);
-        this._current = '';
-        return this;
     };
 
     // -----------------------
@@ -899,11 +746,18 @@
     function rest(arry) {
         return copyFrom(arry, 1);
     }
-
-    function pushAll(arr1, arr2) {
-        for (var i = 0, len = arr2.length; i < len; i++) {
-            arr1.push(arr2[i]);
+    function flatten(arry, accum) {
+        accum = accum || [];
+        for (var i = 0, len = arry.length; i < len; i++) {
+            var val = arry[i];
+            if (val instanceof Array) {
+                flatten(val, accum);
+            }
+            else {
+                accum.push(val);
+            }
         }
+        return accum;
     }
 
     function toRegExp(node) {
@@ -927,6 +781,13 @@
         }
     }
 
+    function pluck(arry, field) {
+        var res = [];
+        for (var i = 0, len = arry.length; i < len; i++) {
+            res.push(arry[i][field]);
+        }
+        return res;
+    }
     function contains(str, match) {
         return str.indexOf(match) !== -1;
     }
@@ -942,6 +803,7 @@
     function nullOrEmpty(str) {
         return str == null || str === '';
     }
+
     function identifyState(snippet) {
         /*jshint -W084*/
         var execState;
@@ -972,33 +834,16 @@
         return STATE_TERM;
         /*jshint +W084*/
     }
-    function needsOrNoncapture(rb) {
-        return identifyState(rb._current) === STATE_OR;
-    }
 
     function hasNonEmptyNeighborNode(nodes, i) {
-        if (i > 0 && identifyState(nodes[i - 1]) !== STATE_EMPTY) {
+        if (i > 0 && identifyState(nodes[i - 1].term) !== STATE_EMPTY) {
             return true;
         }
-        if (i < (nodes.length - 1) && identifyState(nodes[i + 1]) !== STATE_EMPTY) {
+        if (i < (nodes.length - 1) && identifyState(nodes[i + 1].term) !== STATE_EMPTY) {
             return true;
         }
         return false;
 
-    }
-    function renderNodes(nodes) {
-        var rendered = '';
-        for (var i = 0, len = nodes.length; i < len; i++) {
-            var node = nodes[i];
-
-            if ((identifyState(node) === STATE_OR) && hasNonEmptyNeighborNode(nodes, i)) {
-                rendered += '(?:' + node + ')';
-            }
-            else {
-                rendered += node;
-            }
-        }
-        return rendered;
     }
 
     // TODO FIXME exclude from 'production' builds, if I make that a thing
@@ -1017,13 +862,11 @@
     /** like *, or {}, or ? after a term */
     var STATE_MODIFIEDTERM = 'STATE_MODIFIEDTERM';
     var STATE_CHARACTER = 'STATE_CHARACTER';
-    var STATE_CHARACTERS = 'STATE_CHARACTERS';
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
     var STATE_ANY = 'STATE_ANY';
     var STATE_OPTIONAL = 'STATE_OPTIONAL';
-    var STATE_GROUPED = 'STATE_GROUPED';
 
     return regex;
 }));
