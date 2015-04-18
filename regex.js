@@ -815,15 +815,6 @@
         if (startsWith(snippet, '(?:')) {
             return STATE_OPENNONCAPTURE;
         }
-        // see tests/states.js - \( and \) don't defeat the or, but (a|b) does
-        if (contains(snippet, '|')) {
-            execState = /(.?\()?.*\|.*(.\))/.exec(snippet);
-            if (execState == null || nullOrEmpty(execState[1]) || nullOrEmpty(execState[2]) ||
-                (execState[1] === '\\(' && execState[2] === '\\)')) {
-
-                return STATE_OR;
-            }
-        }
         if (startsWith(snippet, '[') && endsWithNonEscaped(snippet, ']')) {
             return STATE_ANY;
         }
@@ -856,8 +847,6 @@
     var STATE_CLOSEDGROUP = 'STATE_CLOSEDGROUP';
     /** literally empty */
     var STATE_EMPTY = 'STATE_EMPTY';
-    /** last token is non empty and included an | symbol */
-    var STATE_OR = 'STATE_OR';
     /** see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture */
     var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
     /** like *, or {}, or ? after a term */

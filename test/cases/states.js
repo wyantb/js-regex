@@ -1,4 +1,4 @@
-/*global test,ok,regex,strictEqual,notStrictEqual,module*/
+/*global test,ok,regex,strictEqual,module*/
 
 module('direct state tests');
 
@@ -17,13 +17,4 @@ test('basic states', function () {
 test('((ab){2}) gives closedgroup state', function () {
     'use strict';
     strictEqual(regex._identifyState('((ab){2})'), 'STATE_CLOSEDGROUP');
-});
-
-test('more complex - or states', function () {
-    'use strict';
-    notStrictEqual(regex._identifyState('c(a|b)'), 'STATE_OR', 'stuff before');
-    notStrictEqual(regex._identifyState('(a|b)c'), 'STATE_OR', 'stuff after');
-    strictEqual(regex._identifyState('a|b'), 'STATE_OR', 'simplest case');
-    strictEqual(regex._identifyState('\\(a|b\\)'), 'STATE_OR', 'duds before/after');
-    notStrictEqual(regex._identifyState('(\\(a|b\\))'), 'STATE_OR', 'pseudo duds before/after');
 });
