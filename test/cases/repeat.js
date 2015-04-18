@@ -254,5 +254,32 @@ test('with macros', function () {
         .peek();
 
     strictEqual(result, '((?:(abc)(def))*)', 'generate minimal capture, even when capturing a repeated sequence');
+});
 
+test('basic repeating twice in a row adds noncaptures', function () {
+    'use strict';
+    regex()
+        .literals('ab')
+            .repeat()
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(?:ab)*');
+            })
+            .repeat()
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(?:(?:ab)*)*');
+            });
+});
+
+test('numbered repeating twice in a row adds noncaptures', function () {
+    'use strict';
+    regex()
+        .literals('ab')
+            .repeat(2, 2)
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(?:ab){2}');
+            })
+            .repeat(2, 2)
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(?:(?:ab){2}){2}');
+            });
 });

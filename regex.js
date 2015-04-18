@@ -251,9 +251,6 @@
         if (identifyCurrentTerm(this) === STATE_EMPTY) {
             throw new Error('nothing to repeat');
         }
-        if (identifyCurrentTerm(this) === STATE_REPEAT) {
-            throw new Error('repeating twice in a row will break JS RegExp');
-        }
 
         maybeWrapInOpennoncapture(this);
 
