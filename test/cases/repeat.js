@@ -230,7 +230,8 @@ test('with macros', function () {
 
     strictEqual(result, '(?:abc|def)*(?:lits)*', 'or() and lits macro combined');
 
-    regex.addMacro('followedBy')
+    regex
+        .addMacro('followedBy')
             .literals('abc')
             .followedBy()
                 .literals('def')

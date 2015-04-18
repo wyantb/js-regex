@@ -190,9 +190,8 @@
     };
 
     RegexBase.macro = function macro(name) {
-        console.error('macro -- broken');
         var mac = this._getMacro(name);
-        mac._apply(this);
+        this._addTerm(mac.peek());
         return this;
     };
 
@@ -534,14 +533,11 @@
 
     var RegexFollowedBy = Object.create(RegexBase);
     RegexFollowedBy._type = 'followedByBase';
+    RegexFollowedBy.end = RegexGroup.end;
 
     RegexFollowedBy._renderNodes = function _renderNodes(nodes) {
         var pre = this._notFlag === true ? '(?!' : '(?=';
         return pre + pluck(nodes, 'term').join('') + ')';
-    };
-
-    RegexFollowedBy.end = function end() {
-        return this._closeAndApply(this._parent, true);
     };
 
     var RegexIsFollowedBy = Object.create(RegexFollowedBy);
@@ -557,12 +553,12 @@
     var RegexMacro = Object.create(RegexGroup);
     RegexMacro._type = 'macro';
 
-    delete RegexMacro.endSequence;
-    delete RegexMacro.endSeq;
-
     RegexMacro.endMacro = RegexMacro.end = function end() {
         return this._parent;
     };
+
+    delete RegexMacro.endSequence;
+    delete RegexMacro.endSeq;
 
     // Represents the root object created by executing regex()
     var RegexRoot = Object.create(RegexBase);
