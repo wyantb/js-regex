@@ -16,3 +16,15 @@ test('add some basic flags', function () {
         });
 
 });
+
+test('used from the root context', function () {
+    'use strict';
+
+    regex()
+        .sequence(
+            'a',
+            regex.flags.digit())
+        .call(function (rb) {
+            strictEqual(rb.peek(), 'a\\d');
+        });
+});

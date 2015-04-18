@@ -70,13 +70,15 @@
     var RegexBase = {};
     RegexBase._type = 'base';
 
-    RegexBase._init = function _init(_parent) {
+    RegexBase._initFields = function _initFields(_parent) {
         this._terms = [];
         this._parent = _parent || {};
         this._macros = {};
-
-        makeFlags(this);
-
+        return this;
+    };
+    RegexBase._init = function _init(_parent) {
+        this._initFields(_parent);
+        makeFlagFns(this);
         return this;
     };
 
@@ -165,7 +167,7 @@
     function applyArgumentsToNode(proto, node, args) {
         var toApply = Object.create(proto)._init(node);
         applyArgs(toApply, args);
-        return node._addTerm(toApply._terms);
+        return node._addTerm(toApply.peek());
     }
     function applyArgumentsWithoutNode(proto, args) {
         var toApply = Object.create(proto)._init(regex);
@@ -193,7 +195,7 @@
     };
 
     RegexBase.macro = function macro(name) {
-        console.error('broken');
+        console.error('macro -- broken');
         var mac = this._getMacro(name);
         mac._apply(this);
         return this;
@@ -427,7 +429,7 @@
         '0': '\\0',
     };
 
-    function makeFlags(node) {
+    function makeFlagFns(node) {
         function addFlag(flag) {
             return function flagFn() {
                 return node._addTerm(flag);
@@ -475,15 +477,19 @@
     }
 
     var RegexFlags = {};
-
+    RegexFlags._type = 'flags';
+    RegexFlags._initFields = RegexBase._initFields;
+    RegexFlags._addTerm = RegexBase._addTerm;
+    RegexFlags._renderNodes = RegexBase._renderNodes;
+    RegexFlags.peek = RegexBase.peek;
     RegexFlags.repeat = RegexBase.repeat;
     RegexFlags.capture = RegexBase.capture;
     RegexFlags.optional = RegexBase.optional;
 
     Object.defineProperty(regex, 'flags', {
         get: function () {
-            var reFlags = Object.create(RegexFlags);
-            makeFlags(reFlags);
+            var reFlags = Object.create(RegexFlags)._initFields(regex);
+            makeFlagFns(reFlags);
             return reFlags.flags;
         },
         enumerable: true
@@ -742,9 +748,7 @@
                 reNode.literals(arg);
             }
             else if (RegexBase.isPrototypeOf(arg) || RegexFlags.isPrototypeOf(arg)) {
-                reNode._newState = reNode._state;
-                reNode._purgeLast(true);
-                arg._closeAndApply(reNode);
+                reNode._addTerm(arg.peek());
             }
             else {
                 throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
