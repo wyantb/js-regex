@@ -68,6 +68,7 @@
     };
 
     var RegexBase = {};
+    RegexBase._type = 'base';
 
     RegexBase._init = function _init(_parent) {
         this._terms = [];
@@ -489,6 +490,7 @@
     });
 
     var RegexGroup = Object.create(RegexBase);
+    RegexGroup._type = 'group';
 
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
         if (this._parent !== regex) {
@@ -498,6 +500,7 @@
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
+    RegexCharacterSet._type = 'characterSet';
 
     // TODO am I really not creative enough to do better?  Not to mention, liskov substitution principle...
     delete RegexCharacterSet.noneFrom;
@@ -510,14 +513,17 @@
     delete RegexCharacterSet.repeat;
 
     var RegexAny = Object.create(RegexCharacterSet);
+    RegexAny._type = 'any';
     RegexAny._excludeFlag = false;
     RegexAny.endAny = RegexAny.end;
 
     var RegexNone = Object.create(RegexCharacterSet);
+    RegexNone._type = 'none';
     RegexNone._exclueFlag = true;
     RegexNone.endNone = RegexNone.end;
 
     var RegexEither = Object.create(RegexBase);
+    RegexEither._type = 'either';
     RegexEither.end = RegexEither.endEither = RegexEither.endOr = RegexGroup.end;
 
     RegexEither._renderNodes = function _renderNodes(nodes) {
@@ -525,6 +531,7 @@
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
+    RegexFollowedBy._type = 'followedByBase';
 
     // TODO need this in the hierarchy
     RegexFollowedBy._close = function _close() {
@@ -541,14 +548,17 @@
     };
 
     var RegexIsFollowedBy = Object.create(RegexFollowedBy);
+    RegexIsFollowedBy._type = 'isFollowedBy';
     RegexIsFollowedBy._notFlag = false;
     RegexIsFollowedBy.endFollowedBy = RegexIsFollowedBy.end;
 
     var RegexNotFollowedBy = Object.create(RegexFollowedBy);
+    RegexNotFollowedBy._type = 'notFollowedBy';
     RegexNotFollowedBy._notFlag = true;
     RegexNotFollowedBy.endNotFollowedBy = RegexNotFollowedBy.end;
 
     var RegexMacro = Object.create(RegexGroup);
+    RegexMacro._type = 'macro';
 
     delete RegexMacro.endSequence;
     delete RegexMacro.endSeq;
@@ -559,6 +569,7 @@
 
     // Represents the root object created by executing regex()
     var RegexRoot = Object.create(RegexBase);
+    RegexRoot._type = 'root';
 
     RegexRoot.addMacro = function addMacro(name) {
         /*jshint -W093*/
