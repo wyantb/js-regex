@@ -327,8 +327,7 @@
             throw new Error('must specify two characters for anyFrom() method');
         }
 
-        // TODO shouldn't this be set literal?  I mean what if you want - to something else
-        var term = '[' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']';
+        var term = '[' + getSetLiteral(firstChar) + '-' + getSetLiteral(secondChar) + ']';
         return this._addTerm(term);
     };
 
@@ -336,7 +335,7 @@
         return Object.create(RegexBase)._init(regex).anyFrom(firstChar, secondChar);
     };
 
-    RegexBase.any = function any(characters) {
+    RegexBase.any = RegexBase.anyOf = function any(characters) {
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for any(), must be a String of literals');
         }
@@ -349,8 +348,7 @@
         }
     };
 
-    // TODO call this anyOf?  sounds odd
-    regex.any = function any(literals) {
+    regex.any = regex.anyOf = function any(literals) {
         return Object.create(RegexBase)._init(regex).any(literals);
     };
 
@@ -359,7 +357,7 @@
             throw new Error('must specify two characters for noneFrom() method');
         }
 
-        var term = '[^' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']';
+        var term = '[^' + getSetLiteral(firstChar) + '-' + getSetLiteral(secondChar) + ']';
         return this._addTerm(term);
     };
 
@@ -367,8 +365,7 @@
         return Object.create(RegexBase)._init(regex).noneFrom(firstChar, secondChar);
     };
 
-    // TODO call this noneOf?  sounds odd
-    RegexBase.none = function none(characters) {
+    RegexBase.none = RegexBase.noneOf = function none(characters) {
         if (arguments.length && typeof characters !== 'string') {
             throw new Error('if specifying arguments for none(), must be a String of literals');
         }
@@ -381,7 +378,7 @@
         }
     };
 
-    regex.none = function none(literals) {
+    regex.none = regex.noneOf = function none(literals) {
         return Object.create(RegexBase)._init(regex).none(literals);
     };
 
