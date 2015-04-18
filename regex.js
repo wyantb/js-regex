@@ -543,6 +543,9 @@
         return this._nodesToArray().join('|');
     };
     RegexEither._toTerm = function _toTerm() {
+        // if (this._terms.length === 1) {
+        //     return this._terms[0];
+        // }
         return {
             captures: flatten(pluck(this._terms, 'captures')),
             type: this._terms.length > 1 ? TYPE_OR : TYPE_TERM,
@@ -571,6 +574,17 @@
 
     var RegexMacro = Object.create(RegexSequence);
     RegexMacro._type = 'macro';
+
+    RegexMacro._toTerm = function _toTerm() {
+        if (this._terms.length === 1) {
+            return deepExtend({}, this._terms[0]);
+        }
+        return {
+            captures: flatten(pluck(this._terms, 'captures')),
+            type: TYPE_MULTITERM,
+            term: this._renderNodes()
+        };
+    };
 
     RegexMacro.endMacro = RegexMacro.end = function end() {
         return this._parent;

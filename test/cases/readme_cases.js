@@ -185,6 +185,8 @@ test('Complex Examples', function () {
 
     //### Example 1
 
+    var portionWithoutQuotes = '25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?';
+    var portionWithQuotes = '(' + portionWithoutQuotes + ')';
     result = regex()
         .addMacro('0-255')
             .either()
@@ -204,10 +206,33 @@ test('Complex Examples', function () {
                 .endSequence()
             .endEither()
         .endMacro()
-        .macro('0-255').capture()
+        .macro('0-255')
+        .call(function (rb) {
+            strictEqual(rb.peek(), portionWithoutQuotes, 'invoking macro gave nice rendering');
+        })
+          .capture()
+        .call(function (rb) {
+            strictEqual(rb.peek(), portionWithQuotes, 'and got captured the same');
+        })
         .literal('.')
-        .macro('0-255').capture()
+        .call(function (rb) {
+            strictEqual(rb.peek(), portionWithQuotes + '\\.', 'and didnt go crazy once a literal was added');
+        })
+        .macro('0-255')
+        .call(function (rb) {
+            var peeked = rb.peek();
+            strictEqual(peeked, portionWithQuotes + '\\.(?:' + portionWithoutQuotes + ')', 'and once second macro was added, appended in straightforward manner (though, it is a temporary TYPE_OR condition)');
+        })
+          .capture()
+        .call(function (rb) {
+            var peeked = rb.peek();
+            strictEqual(peeked, portionWithQuotes + '\\.' + portionWithQuotes, 'same with second capture');
+        })
         .literal('.')
+        .call(function (rb) {
+            var peeked = rb.peek();
+            strictEqual(peeked, portionWithQuotes + '\\.' + portionWithQuotes + '\\.', 'same with second literal');
+        })
         .macro('0-255').capture()
         .literal('.')
         .macro('0-255').capture()
