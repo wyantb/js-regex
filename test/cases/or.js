@@ -122,3 +122,24 @@ test('capturing or()', function () {
 
     strictEqual(result, 'a(bc|jk)', 'No non-capturing group necessary');
 });
+
+test('or() with single or term reports as such', function () {
+    'use strict';
+    regex()
+        .or()
+            .or()
+                .literals('a')
+                .literals('b')
+            .end()
+            .call(function (rb) {
+                strictEqual(rb.peek(), 'a|b');
+            })
+        .end()
+        .call(function (rb) {
+            strictEqual(rb.peek(), 'a|b');
+        })
+        .literals('c')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:a|b)c');
+        });
+});

@@ -546,9 +546,9 @@
         return this._nodesToArray().join('|');
     };
     RegexEither._toTerm = function _toTerm() {
-        // if (this._terms.length === 1) {
-        //     return this._terms[0];
-        // }
+        if (this._terms.length === 1) {
+            return objectCopy(this._terms[0]);
+        }
         return {
             captures: flatten(pluck(this._terms, 'captures')),
             type: this._terms.length > 1 ? TYPE_OR : TYPE_TERM,
