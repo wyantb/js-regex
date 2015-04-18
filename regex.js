@@ -123,6 +123,7 @@
         for (var i = 0, len = nodes.length; i < len; i++) {
             var term = nodes[i].term;
 
+            // TODO depend on the state of the term
             if ((identifyState(term) === STATE_OR) && hasNonEmptyNeighborNode(nodes, i)) {
                 rendered += '(?:' + term + ')';
             }
@@ -147,7 +148,7 @@
     function wrapCurrentTerm(rb, pre, post) {
         var curTerm = currentTerm(rb);
         curTerm.term = pre + curTerm.term + post;
-        return curTerm;
+        return rb;
     }
     function replaceCurrentTerm(rb, match, replace) {
         var curTerm = currentTerm(rb);
@@ -312,14 +313,6 @@
 
     regex.followedBy = function followedBy() {
         return applyArgumentsWithoutNode(RegexIsFollowedBy, copy(arguments));
-        /* TODO FIXME why did I do this?
-         * same for notfollowed by
-        if (literals) {
-            reFollowed.literals(literals);
-        }
-
-        return reFollowed;
-        */
     };
 
     RegexBase.notFollowedBy = function notFollowedBy(string) {
@@ -499,22 +492,12 @@
 
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
         if (this._parent !== regex) {
-            return this._addTerm(this._renderNodes(this._terms));
+            return this._parent._addTerm(this._renderNodes(this._terms));
         }
         return this;
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
-
-    // TODO FIXME need this in the hierarchy
-    RegexCharacterSet._close = function _close() {
-        this._state = STATE_ANY;
-        RegexBase._close.call(this);
-
-        var setFlags = this._excludeFlag ? '[^' : '[';
-        this._current = setFlags + this._current + ']';
-        return this;
-    };
 
     // TODO am I really not creative enough to do better?  Not to mention, liskov substitution principle...
     delete RegexCharacterSet.noneFrom;
@@ -535,31 +518,10 @@
     RegexNone.endNone = RegexNone.end;
 
     var RegexEither = Object.create(RegexBase);
+    RegexEither.end = RegexEither.endEither = RegexEither.endOr = RegexGroup.end;
 
-    // TODO have to do this sometime
-    RegexEither._purgeLast = function _purgeLast() {
-        if (this._current) {
-            this._current += '|';
-        }
-        RegexGroup._purgeLast.call(this, true);
-
-        return this;
-    };
-
-    // TODO have to do this sometime
-    RegexEither.peek = function peek() {
-        if (this._current && this._getLast()) {
-            return this._current + '|' + this._getLast();
-        }
-        return RegexBase.peek.call(this);
-    };
-
-    // TODO have to do this sometime (need renderNodes in class struct)
-    RegexEither.endOr = RegexEither.endEither = RegexEither.end = function end() {
-        if (this._parent !== regex) {
-            return this._closeAndApply(this._parent, true);
-        }
-        return this._close(true);
+    RegexEither._renderNodes = function _renderNodes(nodes) {
+        return pluck(nodes, 'term').join('|');
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
@@ -863,7 +825,6 @@
     var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
     var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
-    var STATE_ANY = 'STATE_ANY';
     var STATE_OPTIONAL = 'STATE_OPTIONAL';
 
     return regex;

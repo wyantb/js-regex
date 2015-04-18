@@ -10,7 +10,13 @@ test('basic usage', function () {
     result = regex()
         .or()
             .literals('abc')
+            .call(function (rb) {
+                strictEqual(rb.peek(), 'abc');
+            })
             .literals('def')
+            .call(function (rb) {
+                strictEqual(rb.peek(), 'abc|def');
+            })
         .endOr()
         .peek();
 

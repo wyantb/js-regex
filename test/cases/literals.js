@@ -1,6 +1,6 @@
 /*global test,regex,strictEqual,module*/
 
-module('bare-minimum basics');
+module('literals');
 
 test('.call and .literals()', function () {
     'use strict';
