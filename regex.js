@@ -507,6 +507,12 @@
 
     var RegexCharacterSet = Object.create(RegexBase);
     RegexCharacterSet._type = 'characterSet';
+    RegexCharacterSet.end = RegexGroup.end;
+
+    RegexCharacterSet._renderNodes = function _renderNodes(nodes) {
+        var pre = this._anyExclueFlag === true ? '[^' : '[';
+        return pre + pluck(nodes, 'term').join('') + ']';
+    };
 
     // TODO am I really not creative enough to do better?  Not to mention, liskov substitution principle...
     delete RegexCharacterSet.noneFrom;
@@ -520,12 +526,12 @@
 
     var RegexAny = Object.create(RegexCharacterSet);
     RegexAny._type = 'any';
-    RegexAny._excludeFlag = false;
+    RegexAny._anyExcludeFlag = false;
     RegexAny.endAny = RegexAny.end;
 
     var RegexNone = Object.create(RegexCharacterSet);
     RegexNone._type = 'none';
-    RegexNone._exclueFlag = true;
+    RegexNone._anyExclueFlag = true;
     RegexNone.endNone = RegexNone.end;
 
     var RegexEither = Object.create(RegexBase);
