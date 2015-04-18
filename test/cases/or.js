@@ -143,3 +143,29 @@ test('or() with single or term reports as such', function () {
             strictEqual(rb.peek(), '(?:a|b)c');
         });
 });
+
+test('recursively entering ors doesnt behave oddly', function () {
+    'use strict';
+    regex()
+        .or()
+            .literals('a')
+            .or()
+                .literals('a')
+                .literals('b')
+                .call(function (rb) {
+                    strictEqual(rb.peek(), 'a|b');
+                })
+            .end()
+            .call(function (rb) {
+                strictEqual(rb.peek(), 'a|(?:a|b)');
+            })
+        .end()
+        .call(function (rb) {
+            strictEqual(rb.peek(), 'a|(?:a|b)');
+        })
+        .literals('a')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:a|(?:a|b))a');
+        });
+});
+

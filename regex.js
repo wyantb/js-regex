@@ -542,7 +542,6 @@
     RegexEither.end = RegexEither.endEither = RegexEither.endOr = RegexGroup.end;
 
     RegexEither._renderNodes = function _renderNodes() {
-        // TODO test this - or().lit(a).or().lit(a).lit(b).endOr().endOr()
         return this._nodesToArray().join('|');
     };
     RegexEither._toTerm = function _toTerm() {
