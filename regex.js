@@ -91,11 +91,6 @@
         return this._macros[name] || this._parent._getMacro(name);
     };
 
-    RegexBase._purgeLast = function _purgeLast() {
-        console.warn('purgeLast -- noop');
-        return this;
-    };
-
     RegexBase._setLast = function _setLast(last) {
         console.warn('setLast -- noop');
         return this;
@@ -227,11 +222,8 @@
         if (typeof name !== 'string') {
             throw new Error('named error groups for capture must be a String');
         }
-        if (this._getLast() === '' || this._state === STATE_EMPTY) {
+        if (identifyCurrentTerm(this) === STATE_EMPTY) {
             throw new Error('nothing to capture');
-        }
-        if (this._state === STATE_CAPTURE) {
-            throw new Error('capturing twice in a row is pointless');
         }
         if (name === 'match') {
             throw new Error('the capture group \'match\' represents the entire match group, and cannot be used as a custom named group');
@@ -249,8 +241,9 @@
 
     function maybeWrapInOpennoncapture(rb) {
         switch (identifyCurrentTerm(rb)) {
-        case STATE_EMPTY:
         case STATE_CHARACTER:
+        case STATE_CLOSEDGROUP:
+        case STATE_ANY:
             break;
         default:
             wrapCurrentTerm(rb, '(?:', ')');
@@ -258,10 +251,10 @@
         }
     }
     RegexBase.repeat = function repeat(min, max) {
-        if (this._getLast() === '' || this._state === STATE_EMPTY) {
+        if (identifyCurrentTerm(this) === STATE_EMPTY) {
             throw new Error('nothing to repeat');
         }
-        if (this._state === STATE_REPEAT) {
+        if (identifyCurrentTerm(this) === STATE_REPEAT) {
             throw new Error('repeating twice in a row will break JS RegExp');
         }
 
@@ -290,11 +283,8 @@
     };
 
     RegexBase.optional = function optional() {
-        if (this._getLast() === '' || this._state === STATE_EMPTY) {
+        if (identifyCurrentTerm(this) === STATE_EMPTY) {
             throw new Error('nothing to mark as optional');
-        }
-        if (this._state === STATE_OPTIONAL) {
-            throw new Error('marking as optional twice in a row will break JS RegExp');
         }
 
         maybeWrapInOpennoncapture(this);
@@ -545,14 +535,9 @@
     var RegexFollowedBy = Object.create(RegexBase);
     RegexFollowedBy._type = 'followedByBase';
 
-    // TODO need this in the hierarchy
-    RegexFollowedBy._close = function _close() {
-        this._state = STATE_FOLLOWEDBY;
-        RegexBase._close.call(this);
-
-        var notFlags = this._notFlag ? '(?!' : '(?=';
-        this._current = notFlags + this._current + ')';
-        return this;
+    RegexFollowedBy._renderNodes = function _renderNodes(nodes) {
+        var pre = this._notFlag === true ? '(?!' : '(?=';
+        return pre + pluck(nodes, 'term').join('') + ')';
     };
 
     RegexFollowedBy.end = function end() {
@@ -633,8 +618,6 @@
         if (typeof string !== 'string') {
             throw new Error('can only call exec with a String');
         }
-
-        this._purgeLast(false);
 
         var execed = toRegExp(this).exec(string);
 
@@ -791,10 +774,14 @@
         if (snippet.length === 0) {
             return STATE_EMPTY;
         }
-        if (snippet.length === 1) { // TODO FIXME could be true with unicode or flags, also
+        if (snippet.length === 1 || (startsWith(snippet, '\\') && snippet.length === 2)) {
+             // TODO FIXME could be true with unicode also
             return STATE_CHARACTER;
         }
-        if (endsWithNonEscaped(snippet, '*') || endsWithNonEscaped(snippet, '?')) {
+        if (endsWithNonEscaped(snippet, '*')) {
+            return STATE_REPEAT;
+        }
+        if (endsWithNonEscaped(snippet, '?')) {
             return STATE_MODIFIEDTERM;
         }
         if (startsWith(snippet, '(?:')) {
@@ -809,7 +796,10 @@
                 return STATE_OR;
             }
         }
-        if (endsWithNonEscaped(snippet, ')')) {
+        if (startsWith(snippet, '[') && endsWithNonEscaped(snippet, ']')) {
+            return STATE_ANY;
+        }
+        if (startsWith(snippet, '(') && endsWithNonEscaped(snippet, ')')) {
             return STATE_CLOSEDGROUP;
         }
         return STATE_TERM;
@@ -830,6 +820,8 @@
     // TODO FIXME exclude from 'production' builds, if I make that a thing
     regex._identifyState = identifyState;
 
+    // TODO separate logical states (some type of closed group) from concrete ones (any, star)
+
     /** catchall state - generally, when I don't know what to make of a thing, but also, that it doesn't matter anyway */
     var STATE_TERM = 'STATE_TERM';
     /** catchall group state - when I know I have some kind of group, but don't care what type */
@@ -842,11 +834,10 @@
     var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
     /** like *, or {}, or ? after a term */
     var STATE_MODIFIEDTERM = 'STATE_MODIFIEDTERM';
+    /** [abc] - you know, character sets */
+    var STATE_ANY = 'STATE_ANY';
     var STATE_CHARACTER = 'STATE_CHARACTER';
-    var STATE_CAPTURE = 'STATE_CAPTURE';
     var STATE_REPEAT = 'STATE_REPEAT';
-    var STATE_FOLLOWEDBY = 'STATE_FOLLOWEDBY';
-    var STATE_OPTIONAL = 'STATE_OPTIONAL';
 
     return regex;
 }));

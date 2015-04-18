@@ -1,4 +1,4 @@
-/*global test,ok,regex,strictEqual,module*/
+/*global test,regex,strictEqual,module*/
 
 module('repeat() tests');
 
@@ -86,15 +86,6 @@ test('preceded by every token', function () {
         .peek();
 
     strictEqual(result, '(a)*', '(a)*');
-
-    try {
-        result = regex()
-            .literal('a')
-            .capture().capture();
-        ok(false, 'didn\'t throw an exception.');
-    } catch (err) {
-        ok(true, 'threw an exception when attempting two times in a row.');
-    }
 
     result = regex()
         .sequence()
