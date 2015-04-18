@@ -199,12 +199,12 @@
             return Object.create(RegexSequence)._init(this);
         }
         else {
-            return applyArgumentsToNode(RegexSequence, this, copy(arguments));
+            return applyArgumentsToNode(RegexSequence, this, arrayCopy(arguments));
         }
     };
 
     regex.seq = regex.sequence = function sequence() {
-        return applyArgumentsWithoutNode(RegexSequence, copy(arguments));
+        return applyArgumentsWithoutNode(RegexSequence, arrayCopy(arguments));
     };
 
     RegexBase.capture = function capture(name) {
@@ -302,7 +302,7 @@
     };
 
     regex.followedBy = function followedBy() {
-        return applyArgumentsWithoutNode(RegexIsFollowedBy, copy(arguments));
+        return applyArgumentsWithoutNode(RegexIsFollowedBy, arrayCopy(arguments));
     };
 
     RegexBase.notFollowedBy = function notFollowedBy(string) {
@@ -319,7 +319,7 @@
     };
 
     regex.notFollowedBy = function notFollowedBy(literals) {
-        return applyArgumentsWithoutNode(RegexNotFollowedBy, copy(arguments));
+        return applyArgumentsWithoutNode(RegexNotFollowedBy, arrayCopy(arguments));
     };
 
     RegexBase.anyFrom = function anyFrom(firstChar, secondChar) {
@@ -390,12 +390,12 @@
             return Object.create(RegexEither)._init(this);
         }
         else {
-            return applyArgumentsToNode(RegexEither, this, copy(arguments));
+            return applyArgumentsToNode(RegexEither, this, arrayCopy(arguments));
         }
     };
 
     regex.or = regex.either = function either(/* Optional: [literals|RegexBase] */) {
-        return applyArgumentsWithoutNode(RegexEither, copy(arguments));
+        return applyArgumentsWithoutNode(RegexEither, arrayCopy(arguments));
     };
 
     var flagCharacters = {
@@ -577,7 +577,7 @@
 
     RegexMacro._toTerm = function _toTerm() {
         if (this._terms.length === 1) {
-            return deepExtend({}, this._terms[0]);
+            return objectCopy(this._terms[0]);
         }
         return {
             captures: flatten(pluck(this._terms, 'captures')),
@@ -727,18 +727,18 @@
         return target;
     }
 
-    function copyFrom(arry, idx) {
+    function arrayCopyFrom(arry, idx) {
         var result = new Array(arry.length - idx);
         for (var i = 0, len = arry.length - idx; i < len; i++) {
             result[i] = arry[i + idx];
         }
         return result;
     }
-    function copy(arry) {
-        return copyFrom(arry, 0);
+    function arrayCopy(arry) {
+        return arrayCopyFrom(arry, 0);
     }
     function rest(arry) {
-        return copyFrom(arry, 1);
+        return arrayCopyFrom(arry, 1);
     }
     function flatten(arry, accum) {
         accum = accum || [];
@@ -752,6 +752,9 @@
             }
         }
         return accum;
+    }
+    function objectCopy(obj) {
+        return deepExtend({}, obj);
     }
 
     function toRegExp(node) {
