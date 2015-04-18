@@ -118,8 +118,7 @@
         return this;
     };
 
-    // TODO FIXME this needs to be in class structure
-    function renderNodes(nodes) {
+    RegexBase._renderNodes = function _renderNodes(nodes) {
         var rendered = '';
         for (var i = 0, len = nodes.length; i < len; i++) {
             var term = nodes[i].term;
@@ -132,16 +131,15 @@
             }
         }
         return rendered;
-    }
-    // TODO this needs to be in the class structure FIXME
-    function addTerm(rb, term, typeOverride) {
-        rb._terms.push({
+    };
+    RegexBase._addTerm = function _addTerm(term, typeOverride) {
+        this._terms.push({
             captures: [],
             type: typeOverride,
             term: term
         });
-        return rb;
-    }
+        return this;
+    };
 
     function currentTerm(rb) {
         return rb._terms[rb._terms.length - 1];
@@ -165,7 +163,7 @@
     function applyArgumentsToNode(proto, node, args) {
         var toApply = Object.create(proto)._init(node);
         applyArgs(toApply, args);
-        return addTerm(node, toApply._terms);
+        return node._addTerm(toApply._terms);
     }
     function applyArgumentsWithoutNode(proto, args) {
         var toApply = Object.create(proto)._init(regex);
@@ -181,15 +179,15 @@
     };
 
     RegexBase.peek = function peek() {
-        return renderNodes(this._terms);
+        return this._renderNodes(this._terms);
     };
 
     RegexBase.literal = function literal(character) {
-        return addTerm(this, getNormalLiteral(character));
+        return this._addTerm(getNormalLiteral(character));
     };
 
     RegexBase.literals = function literals(string) {
-        return addTerm(this, getLiterals(string));
+        return this._addTerm(getLiterals(string));
     };
 
     RegexBase.macro = function macro(name) {
@@ -305,7 +303,7 @@
         }
 
         if (arguments.length) {
-            return addTerm(this, '(?=' + getLiterals(string) + ')');
+            return this._addTerm('(?=' + getLiterals(string) + ')');
         }
         else {
             return Object.create(RegexIsFollowedBy)._init(this);
@@ -330,7 +328,7 @@
         }
 
         if (arguments.length) {
-            return addTerm(this, '(?!' + getLiterals(string) + ')');
+            return this._addTerm('(?!' + getLiterals(string) + ')');
         }
         else {
             return Object.create(RegexNotFollowedBy)._init(this);
@@ -348,7 +346,7 @@
 
         // TODO shouldn't this be set literal?  I mean what if you want - to something else
         var term = '[' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']';
-        return addTerm(this, term);
+        return this._addTerm(term);
     };
 
     regex.anyFrom = function anyFrom(firstChar, secondChar) {
@@ -361,7 +359,7 @@
         }
 
         if (arguments.length) {
-            return addTerm(this, '[' + getSetLiterals(characters) + ']');
+            return this._addTerm('[' + getSetLiterals(characters) + ']');
         }
         else {
             return Object.create(RegexAny)._init(this);
@@ -379,7 +377,7 @@
         }
 
         var term = '[^' + getNormalLiteral(firstChar) + '-' + getNormalLiteral(secondChar) + ']';
-        return addTerm(this, term);
+        return this._addTerm(term);
     };
 
     regex.noneFrom = function noneFrom(firstChar, secondChar) {
@@ -393,7 +391,7 @@
         }
 
         if (arguments.length) {
-            return addTerm(this, '[^' + getSetLiterals(characters) + ']');
+            return this._addTerm('[^' + getSetLiterals(characters) + ']');
         }
         else {
             return Object.create(RegexNone)._init(this);
@@ -438,7 +436,7 @@
     function makeFlags(node) {
         function addFlag(flag) {
             return function flagFn() {
-                return addTerm(node, flag);
+                return node._addTerm(flag);
             };
         }
 
@@ -452,7 +450,7 @@
                 newFlags += flagCharacters[newFlag];
             }
 
-            return addTerm(node, newFlags);
+            return node._addTerm(newFlags);
         };
 
         flags.start =                    addFlag('^');
@@ -501,7 +499,7 @@
 
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
         if (this._parent !== regex) {
-            return addTerm(this._parent, renderNodes(this._terms));
+            return this._addTerm(this._renderNodes(this._terms));
         }
         return this;
     };
