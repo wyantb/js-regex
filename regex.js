@@ -221,7 +221,7 @@
 
     RegexBase.seq = RegexBase.sequence = function sequence() {
         if (!arguments.length) {
-            return Object.create(RegexGroup)._init(this);
+            return Object.create(RegexSequence)._init(this);
         }
         else {
             return applyArgumentsToNode(RegexGroup, this, copy(arguments));
@@ -257,8 +257,9 @@
     };
 
     function maybeWrapInOpennoncapture(rb) {
-        if (currentTerm(rb).type === TYPE_OR) {
+        if (currentTerm(rb).type === TYPE_OR || currentTerm(rb).type === TYPE_MULTITERM) {
             wrapCurrentTerm(rb, '(?:', ')');
+            return;
         }
         switch (identifyCurrentTerm(rb)) {
         case STATE_CHARACTER:
@@ -267,6 +268,7 @@
             break;
         default:
             wrapCurrentTerm(rb, '(?:', ')');
+            return;
         }
 
     }
@@ -517,6 +519,17 @@
         return this;
     };
 
+    var RegexSequence = Object.create(RegexGroup);
+    RegexSequence._type = 'sequence';
+
+    RegexSequence._toTerm = function _toTerm() {
+        return {
+            captures: flatten(pluck(this._terms, 'captures')),
+            type: this._terms.length > 1 ? TYPE_MULTITERM : TYPE_TERM,
+            term: this._renderNodes()
+        };
+    };
+
     var RegexCharacterSet = Object.create(RegexBase);
     RegexCharacterSet._type = 'characterSet';
     RegexCharacterSet.end = RegexGroup.end;
@@ -560,7 +573,6 @@
             type: this._terms.length > 1 ? TYPE_OR : TYPE_TERM,
             term: this._renderNodes()
         };
-
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
@@ -704,20 +716,20 @@
         return literals;
     }
 
-    function deepExtend(target, src, depth) {
+    function deepExtend(target, src) {
         var value, prop;
         for (prop in src) {
             if (src.hasOwnProperty(prop)) {
                 value = src[prop];
 
                 if (value instanceof Array) {
-                    target[prop] = copy(value);
+                    target[prop] = deepExtend([], value);
                 }
                 else if (value instanceof Function) {
                     // ignore; only used where target should win over source (i.e., bound fns)
                 }
                 else if (value instanceof Object) {
-                    target[prop] = deepExtend({}, value, true);
+                    target[prop] = deepExtend({}, value);
                 }
                 else {
                     target[prop] = value;
@@ -780,9 +792,6 @@
         }
         return res;
     }
-    function contains(str, match) {
-        return str.indexOf(match) !== -1;
-    }
     function startsWith(str, match) {
         return str.indexOf(match) === 0;
     }
@@ -792,13 +801,8 @@
     function endsWithNonEscaped(str, match) {
         return endsWith(str, match) && !endsWith(str, '\\' + match);
     }
-    function nullOrEmpty(str) {
-        return str == null || str === '';
-    }
 
     function identifyState(snippet) {
-        /*jshint -W084*/
-        var execState;
         if (snippet.length === 0) {
             return STATE_EMPTY;
         }
@@ -822,7 +826,6 @@
             return STATE_CLOSEDGROUP;
         }
         return STATE_TERM;
-        /*jshint +W084*/
     }
 
     function hasNonEmptyNeighborNode(nodes, i) {
@@ -858,6 +861,7 @@
 
     /** a term type, rather than identified state */
     var TYPE_OR = 'TYPE_OR';
+    var TYPE_MULTITERM = 'TYPE_MULTITERM';
     var TYPE_TERM = 'TYPE_TERM';
 
     return regex;
