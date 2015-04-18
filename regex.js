@@ -248,7 +248,7 @@
 
         addCapture(this, name);
 
-        if (identifyCurrentTerm(this) === STATE_OPENNONCAPTURE) {
+        if (currentTerm(this).type !== TYPE_MULTITERM && identifyCurrentTerm(this) === STATE_OPENNONCAPTURE) {
             return replaceCurrentTerm(this, '(?:', '(');
         }
         else {
@@ -594,7 +594,7 @@
     RegexNotFollowedBy._notFlag = true;
     RegexNotFollowedBy.endNotFollowedBy = RegexNotFollowedBy.end;
 
-    var RegexMacro = Object.create(RegexGroup);
+    var RegexMacro = Object.create(RegexSequence);
     RegexMacro._type = 'macro';
 
     RegexMacro.endMacro = RegexMacro.end = function end() {

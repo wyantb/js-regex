@@ -253,6 +253,9 @@ test('Complex Examples', function () {
                 .literals('RE')
                 .literals('MF')
             .endEither()
+            .call(function (rb) {
+                strictEqual(rb.peek(), 'SH|RE|MF');
+            })
         .endMacro()
         .addMacro('date')
             .either()
@@ -296,6 +299,9 @@ test('Complex Examples', function () {
                     .any('01')
                 .endSequence()
             .endEither()
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(?:197[1-9]|19[89]\\d|[2-9]\\d{3})-(?:0[1-9]|1[012])-(?:0[1-9]|[12]\\d|3[01])', 'date portion of the overall macro');
+            })
         .endMacro()
         .addMacro('issuenum')
             .notFollowedBy()
@@ -304,6 +310,9 @@ test('Complex Examples', function () {
             .endNotFollowedBy()
             .f.digit()
             .repeat(5, 5)
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(?!0{5})\\d{5}', 'issue number portion');
+            })
         .endMacro()
         .macro('dept-prefix').capture()
         .literal('-')
