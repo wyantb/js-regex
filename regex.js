@@ -116,21 +116,33 @@
         return this;
     };
 
-    RegexBase._renderNodes = function _renderNodes(nodes) {
-        var rendered = '';
+    RegexBase._nodesToArray = function _nodesToArray() {
+        var parts = [];
+        var nodes = this._terms;
         for (var i = 0, len = nodes.length; i < len; i++) {
-            var term = nodes[i].term;
+            var node = nodes[i];
+            var term = node.term;
 
-            // TODO depend on the state of the term
-            if ((identifyState(term) === STATE_OR) && hasNonEmptyNeighborNode(nodes, i)) {
-                rendered += '(?:' + term + ')';
+            if (node.type === TYPE_OR && hasNonEmptyNeighborNode(nodes, i)) {
+                parts.push('(?:' + term + ')');
             }
             else {
-                rendered += term;
+                parts.push(term);
             }
         }
-        return rendered;
+        return parts;
     };
+    RegexBase._renderNodes = function _renderNodes() {
+        return this._nodesToArray().join('');
+    };
+
+    RegexBase._toTerm = function _toTerm() {
+        return {
+            captures: flatten(pluck(this._terms, 'captures')),
+            term: this._renderNodes(),
+        };
+    };
+
     RegexBase._addTerm = function _addTerm(term, typeOverride) {
         this._terms.push({
             captures: [],
@@ -139,17 +151,23 @@
         });
         return this;
     };
+    RegexBase._addBuilderTerm = function _addBuilderTerm(term) {
+        this._terms.push(term);
+        return this;
+    };
 
     function currentTerm(rb) {
         return rb._terms[rb._terms.length - 1];
     }
     function wrapCurrentTerm(rb, pre, post) {
         var curTerm = currentTerm(rb);
+        curTerm.type = TYPE_TERM;
         curTerm.term = pre + curTerm.term + post;
         return rb;
     }
     function replaceCurrentTerm(rb, match, replace) {
         var curTerm = currentTerm(rb);
+        curTerm.type = TYPE_TERM;
         curTerm.term.replace(match, replace);
         return rb;
     }
@@ -157,12 +175,12 @@
         return identifyState(currentTerm(rb).term);
     }
     function addCapture(rb, capture) {
-        currentTerm(rb).captures.push(capture);
+        currentTerm(rb).captures.unshift(capture);
     }
     function applyArgumentsToNode(proto, node, args) {
         var toApply = Object.create(proto)._init(node);
         applyArgs(toApply, args);
-        return node._addTerm(toApply.peek());
+        return node._addBuilderTerm(toApply._toTerm());
     }
     function applyArgumentsWithoutNode(proto, args) {
         var toApply = Object.create(proto)._init(regex);
@@ -191,7 +209,7 @@
 
     RegexBase.macro = function macro(name) {
         var mac = this._getMacro(name);
-        this._addTerm(mac.peek());
+        this._addBuilderTerm(mac._toTerm());
         return this;
     };
 
@@ -239,6 +257,9 @@
     };
 
     function maybeWrapInOpennoncapture(rb) {
+        if (currentTerm(rb).type === TYPE_OR) {
+            wrapCurrentTerm(rb, '(?:', ')');
+        }
         switch (identifyCurrentTerm(rb)) {
         case STATE_CHARACTER:
         case STATE_CLOSEDGROUP:
@@ -246,8 +267,8 @@
             break;
         default:
             wrapCurrentTerm(rb, '(?:', ')');
-            break;
         }
+
     }
     RegexBase.repeat = function repeat(min, max) {
         if (identifyCurrentTerm(this) === STATE_EMPTY) {
@@ -470,6 +491,8 @@
     RegexFlags._initFields = RegexBase._initFields;
     RegexFlags._addTerm = RegexBase._addTerm;
     RegexFlags._renderNodes = RegexBase._renderNodes;
+    RegexFlags._toTerm = RegexBase._toTerm;
+    RegexFlags._nodesToArray = RegexBase._nodesToArray;
     RegexFlags.peek = RegexBase.peek;
     RegexFlags.repeat = RegexBase.repeat;
     RegexFlags.capture = RegexBase.capture;
@@ -489,7 +512,7 @@
 
     RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
         if (this._parent !== regex) {
-            return this._parent._addTerm(this._renderNodes(this._terms));
+            return this._parent._addBuilderTerm(this._toTerm());
         }
         return this;
     };
@@ -498,9 +521,9 @@
     RegexCharacterSet._type = 'characterSet';
     RegexCharacterSet.end = RegexGroup.end;
 
-    RegexCharacterSet._renderNodes = function _renderNodes(nodes) {
+    RegexCharacterSet._renderNodes = function _renderNodes() {
         var pre = this._anyExclueFlag === true ? '[^' : '[';
-        return pre + pluck(nodes, 'term').join('') + ']';
+        return pre + this._nodesToArray().join('') + ']';
     };
 
     // TODO am I really not creative enough to do better?  Not to mention, liskov substitution principle...
@@ -527,17 +550,26 @@
     RegexEither._type = 'either';
     RegexEither.end = RegexEither.endEither = RegexEither.endOr = RegexGroup.end;
 
-    RegexEither._renderNodes = function _renderNodes(nodes) {
-        return pluck(nodes, 'term').join('|');
+    RegexEither._renderNodes = function _renderNodes() {
+        // TODO test this - or().lit(a).or().lit(a).lit(b).endOr().endOr()
+        return this._nodesToArray().join('|');
+    };
+    RegexEither._toTerm = function _toTerm() {
+        return {
+            captures: flatten(pluck(this._terms, 'captures')),
+            type: this._terms.length > 1 ? TYPE_OR : TYPE_TERM,
+            term: this._renderNodes()
+        };
+
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
     RegexFollowedBy._type = 'followedByBase';
     RegexFollowedBy.end = RegexGroup.end;
 
-    RegexFollowedBy._renderNodes = function _renderNodes(nodes) {
+    RegexFollowedBy._renderNodes = function _renderNodes() {
         var pre = this._notFlag === true ? '(?!' : '(?=';
-        return pre + pluck(nodes, 'term').join('') + ')';
+        return pre + this._nodesToArray().join('') + ')';
     };
 
     var RegexIsFollowedBy = Object.create(RegexFollowedBy);
@@ -627,7 +659,7 @@
         };
 
         for (var i = 1, len = execed.length; i < len; i++) {
-            var name = captures[i];
+            var name = captures[i - 1];
             result[name] = execed[i];
         }
 
@@ -723,7 +755,7 @@
     }
 
     function toRegExp(node) {
-        return new RegExp(node._current);
+        return new RegExp(node.peek());
     }
 
     function applyArgs(reNode, args) {
@@ -733,7 +765,7 @@
                 reNode.literals(arg);
             }
             else if (RegexBase.isPrototypeOf(arg) || RegexFlags.isPrototypeOf(arg)) {
-                reNode._addTerm(arg.peek());
+                reNode._addBuilderTerm(arg._toTerm());
             }
             else {
                 throw new Error('if arguments are given to or(), must be either strings or js-regex objects.');
@@ -755,7 +787,7 @@
         return str.indexOf(match) === 0;
     }
     function endsWith(str, match) {
-        return str.indexOf(match) === (str.length - match.length);
+        return str.lastIndexOf(match) === (str.length - match.length);
     }
     function endsWithNonEscaped(str, match) {
         return endsWith(str, match) && !endsWith(str, '\\' + match);
@@ -834,6 +866,10 @@
     var STATE_ANY = 'STATE_ANY';
     var STATE_CHARACTER = 'STATE_CHARACTER';
     var STATE_REPEAT = 'STATE_REPEAT';
+
+    /** a term type, rather than identified state */
+    var TYPE_OR = 'TYPE_OR';
+    var TYPE_TERM = 'TYPE_TERM';
 
     return regex;
 }));

@@ -15,6 +15,12 @@ test('Basic usage', function () {
     strictEqual(result.match, 'ab', 'whole result captured');
     strictEqual(result.theA, 'a', 'partial capture - a');
     strictEqual(result.theB, 'b', 'partial capture - b');
+});
+
+test('literals captured, repeated, captured', function () {
+    'use strict';
+
+    var result;
 
     result = regex()
         .literals('aa').capture('first')
@@ -27,17 +33,35 @@ test('Basic usage', function () {
     strictEqual(result.match, 'aaaaaa', 'whole result captured');
     strictEqual(result.first, 'aa', 'partial capture - aa');
     strictEqual(result.second, 'aaaaaa', 'full capture - aaaaaa');
+});
+
+test('literals captured & repeated three times', function () {
+    'use strict';
+
+    var result;
 
     result = regex()
         .literals('ab').capture('first')
           .repeat(2, 2).capture('second')
+            .call(function (rb) {
+                strictEqual(rb.peek(), '((ab){2})', 'generated right captchas - second step');
+            })
           .repeat(2, 2).capture('third')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(((ab){2}){2})', 'generated right captchas - final step');
+        })
         .exec('abababab');
 
     strictEqual(result.match, 'abababab', 'whole result captured');
     strictEqual(result.first, 'ab', 'partial capture - ab');
     strictEqual(result.second, 'abab', 'partial capture - abab');
     strictEqual(result.third, 'abababab', 'full capture - abababab');
+});
+
+test('literals before other literals, then captured repeated captured', function () {
+    'use strict';
+
+    var result;
 
     result = regex()
         .literals('123')
@@ -111,6 +135,9 @@ test('capturing eithers and before/after', function () {
         .either()
             .literals('a').capture('theA')
             .literals('b').capture('theB')
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(a)|(b)');
+            })
         .endEither()
         .call(function (rb) {
             strictEqual(rb.peek(), '(1)(?:(a)|(b))');
@@ -125,15 +152,6 @@ test('capturing eithers and before/after', function () {
 
 test('Banned uses', function () {
     'use strict';
-
-    try {
-        regex()
-            .literals('aaa').capture('first').capture('second')
-            .exec('aaa');
-        ok(false);
-    } catch (err) {
-        ok(true, 'Capturing twice in a row is pointless.');
-    }
 
     try {
         regex().literal('a').capture('match');
