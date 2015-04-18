@@ -121,6 +121,4 @@ test('capturing or()', function () {
         .peek();
 
     strictEqual(result, 'a(bc|jk)', 'No non-capturing group necessary');
-
 });
-

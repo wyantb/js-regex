@@ -498,6 +498,9 @@
     RegexSequence.endSequence = RegexSequence.endSeq = RegexGroup.end;
 
     RegexSequence._toTerm = function _toTerm() {
+        if (this._terms.length === 1) {
+            return objectCopy(this._terms[0]);
+        }
         return {
             captures: flatten(pluck(this._terms, 'captures')),
             type: this._terms.length > 1 ? TYPE_MULTITERM : TYPE_TERM,
