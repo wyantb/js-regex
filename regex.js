@@ -199,12 +199,12 @@
             return Object.create(RegexSequence)._init(this);
         }
         else {
-            return applyArgumentsToNode(RegexGroup, this, copy(arguments));
+            return applyArgumentsToNode(RegexSequence, this, copy(arguments));
         }
     };
 
     regex.seq = regex.sequence = function sequence() {
-        return applyArgumentsWithoutNode(RegexGroup, copy(arguments));
+        return applyArgumentsWithoutNode(RegexSequence, copy(arguments));
     };
 
     RegexBase.capture = function capture(name) {
@@ -486,8 +486,7 @@
 
     var RegexGroup = Object.create(RegexBase);
     RegexGroup._type = 'group';
-
-    RegexGroup.endSequence = RegexGroup.endSeq = RegexGroup.end = function end() {
+    RegexGroup.end = function end() {
         if (this._parent !== regex) {
             return this._parent._addBuilderTerm(this._toTerm());
         }
@@ -496,6 +495,7 @@
 
     var RegexSequence = Object.create(RegexGroup);
     RegexSequence._type = 'sequence';
+    RegexSequence.endSequence = RegexSequence.endSeq = RegexGroup.end;
 
     RegexSequence._toTerm = function _toTerm() {
         return {
