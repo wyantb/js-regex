@@ -1,4 +1,4 @@
-/*global define,module,console*/
+/*global define,module*/
 
 /**!
  * js-regex: a chainable regex building library for Javascript.
@@ -89,31 +89,6 @@
 
     RegexBase._getMacro = function _getMacro(name) {
         return this._macros[name] || this._parent._getMacro(name);
-    };
-
-    RegexBase._setLast = function _setLast(last) {
-        console.warn('setLast -- noop');
-        return this;
-    };
-
-    RegexBase._getLast = function _getLast() {
-        console.warn('getLast -- noop');
-        return this;
-    };
-
-    RegexBase._close = function _close() {
-        console.warn('close -- noop');
-        return this;
-    };
-
-    RegexBase._apply = function _apply(node) {
-        console.warn('apply -- noop');
-        return this;
-    };
-
-    RegexBase._closeAndApply = function _closeAndApply(node) {
-        console.warn('closeAndApply -- noop');
-        return this;
     };
 
     RegexBase._nodesToArray = function _nodesToArray() {
@@ -626,8 +601,7 @@
     };
 
     RegexRoot.test = function test(string) {
-        console.warn('test -- noop');
-        return this;
+        return toRegExp(this).exec(string);
     };
 
     RegexRoot.replace = function replace(string, callback) {
