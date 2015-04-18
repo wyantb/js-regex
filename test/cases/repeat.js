@@ -68,6 +68,20 @@ test('basics', function () {
 
 });
 
+test('numbered repeating looks like a repeat', function () {
+    'use strict';
+    regex()
+        .literals('abc')
+        .repeat(2, 2)
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:abc){2}', 'will start out non-grouped');
+        })
+        .capture()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '((?:abc){2})', 'but capturing would then add a group');
+        });
+});
+
 test('preceded by every token', function () {
     'use strict';
 

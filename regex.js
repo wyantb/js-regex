@@ -67,6 +67,28 @@
         }
     };
 
+    // TODO separate logical states (some type of closed group) from concrete ones (any, star)
+
+    /** catchall state - generally, when I don't know what to make of a thing, but also, that it doesn't matter anyway */
+    var STATE_TERM = 'STATE_TERM';
+    /** catchall group state - when I know I have some kind of group, but don't care what type */
+    var STATE_CLOSEDGROUP = 'STATE_CLOSEDGROUP';
+    /** literally empty */
+    var STATE_EMPTY = 'STATE_EMPTY';
+    /** see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture */
+    var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
+    /** like *, or {}, or ? after a term */
+    var STATE_MODIFIEDTERM = 'STATE_MODIFIEDTERM';
+    /** [abc] - you know, character sets */
+    var STATE_ANY = 'STATE_ANY';
+    var STATE_CHARACTER = 'STATE_CHARACTER';
+
+    /** a term type, rather than identified state */
+    var TYPE_OR = 'TYPE_OR';
+    var TYPE_MULTITERM = 'TYPE_MULTITERM';
+    var TYPE_TERM = 'TYPE_TERM';
+    var TYPE_REPEAT = 'TYPE_REPEAT';
+
     var RegexBase = {};
     RegexBase._type = 'base';
 
@@ -134,9 +156,9 @@
     function currentTerm(rb) {
         return rb._terms[rb._terms.length - 1];
     }
-    function wrapCurrentTerm(rb, pre, post) {
+    function wrapCurrentTerm(rb, pre, post, termType) {
         var curTerm = currentTerm(rb);
-        curTerm.type = TYPE_TERM;
+        curTerm.type = termType || TYPE_TERM;
         curTerm.term = pre + curTerm.term + post;
         return rb;
     }
@@ -231,8 +253,9 @@
         }
     };
 
+    var TYPES_TO_WRAP = [TYPE_OR, TYPE_MULTITERM, TYPE_REPEAT];
     function maybeWrapInOpennoncapture(rb) {
-        if (currentTerm(rb).type === TYPE_OR || currentTerm(rb).type === TYPE_MULTITERM) {
+        if (arrayContains(TYPES_TO_WRAP, currentTerm(rb).type)) {
             wrapCurrentTerm(rb, '(?:', ')');
             return;
         }
@@ -255,24 +278,24 @@
         maybeWrapInOpennoncapture(this);
 
         if (!arguments.length) {
-            return wrapCurrentTerm(this, '', '*');
+            return wrapCurrentTerm(this, '', '*', TYPE_REPEAT);
         }
         else if (arguments.length === 1) {
             if (min === 0) {
-                return wrapCurrentTerm(this, '', '*');
+                return wrapCurrentTerm(this, '', '*', TYPE_REPEAT);
             }
             else if (min === 1) {
-                return wrapCurrentTerm(this, '', '+');
+                return wrapCurrentTerm(this, '', '+', TYPE_REPEAT);
             }
             else {
-                return wrapCurrentTerm(this, '', '{' + min + ',}');
+                return wrapCurrentTerm(this, '', '{' + min + ',}', TYPE_REPEAT);
             }
         }
         else if (min !== max) {
-            return wrapCurrentTerm(this, '', '{' + min + ',' + max + '}');
+            return wrapCurrentTerm(this, '', '{' + min + ',' + max + '}', TYPE_REPEAT);
         }
         else {
-            return wrapCurrentTerm(this, '', '{' + min + '}');
+            return wrapCurrentTerm(this, '', '{' + min + '}', TYPE_REPEAT);
         }
     };
 
@@ -723,6 +746,9 @@
         return target;
     }
 
+    function arrayContains(arry, value) {
+        return arry.indexOf(value) !== -1;
+    }
     function arrayCopyFrom(arry, idx) {
         var result = new Array(arry.length - idx);
         for (var i = 0, len = arry.length - idx; i < len; i++) {
@@ -797,13 +823,10 @@
              // TODO FIXME could be true with unicode also
             return STATE_CHARACTER;
         }
-        if (endsWithNonEscaped(snippet, '*')) {
-            return STATE_REPEAT;
-        }
         if (endsWithNonEscaped(snippet, '?')) {
             return STATE_MODIFIEDTERM;
         }
-        if (startsWith(snippet, '(?:')) {
+        if (startsWith(snippet, '(?:') && endsWithNonEscaped(snippet, ')')) {
             return STATE_OPENNONCAPTURE;
         }
         if (startsWith(snippet, '[') && endsWithNonEscaped(snippet, ']')) {
@@ -828,28 +851,6 @@
 
     // TODO FIXME exclude from 'production' builds, if I make that a thing
     regex._identifyState = identifyState;
-
-    // TODO separate logical states (some type of closed group) from concrete ones (any, star)
-
-    /** catchall state - generally, when I don't know what to make of a thing, but also, that it doesn't matter anyway */
-    var STATE_TERM = 'STATE_TERM';
-    /** catchall group state - when I know I have some kind of group, but don't care what type */
-    var STATE_CLOSEDGROUP = 'STATE_CLOSEDGROUP';
-    /** literally empty */
-    var STATE_EMPTY = 'STATE_EMPTY';
-    /** see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture */
-    var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
-    /** like *, or {}, or ? after a term */
-    var STATE_MODIFIEDTERM = 'STATE_MODIFIEDTERM';
-    /** [abc] - you know, character sets */
-    var STATE_ANY = 'STATE_ANY';
-    var STATE_CHARACTER = 'STATE_CHARACTER';
-    var STATE_REPEAT = 'STATE_REPEAT';
-
-    /** a term type, rather than identified state */
-    var TYPE_OR = 'TYPE_OR';
-    var TYPE_MULTITERM = 'TYPE_MULTITERM';
-    var TYPE_TERM = 'TYPE_TERM';
 
     return regex;
 }));
