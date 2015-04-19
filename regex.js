@@ -116,7 +116,7 @@
     };
     RegexBase._toTerm = function _toTerm() {
         return {
-            captures: flatten(pluck(this._terms, 'captures')),
+            captures: orderedCaptures(this),
             term: this._renderNodes(),
         };
     };
@@ -146,11 +146,16 @@
         return rb;
     }
     function addBackref(rb, name) {
+        var groupIdx = orderedCaptures(rb).indexOf(name);
+        if (groupIdx === -1) {
+            throw new Error('unrecognized group for backref: ' + name);
+        }
+
         rb._terms.push({
             captures: [],
             backrefs: [name],
             type: TYPE_TERM,
-            term: '\\1'
+            term: '\\' + (groupIdx + 1)
         });
         return rb;
     }
@@ -163,6 +168,9 @@
 
     function currentTerm(rb) {
         return rb._terms[rb._terms.length - 1];
+    }
+    function orderedCaptures(rb) {
+        return flatten(pluck(rb._terms, 'captures'));
     }
     function wrapCurrentTerm(rb, pre, post, termType) {
         var curTerm = currentTerm(rb);
@@ -537,7 +545,7 @@
             return objectCopy(this._terms[0]);
         }
         return {
-            captures: flatten(pluck(this._terms, 'captures')),
+            captures: orderedCaptures(this),
             type: TYPE_MULTITERM,
             term: this._renderNodes()
         };
@@ -587,7 +595,7 @@
             return objectCopy(this._terms[0]);
         }
         return {
-            captures: flatten(pluck(this._terms, 'captures')),
+            captures: orderedCaptures(this),
             type: TYPE_OR,
             term: this._renderNodes()
         };
@@ -645,7 +653,7 @@
     };
 
     RegexRoot.test = function test(string) {
-        return toRegExp(this).exec(string);
+        return toRegExp(this).test(string);
     };
 
     RegexRoot.replace = function replace(string, callback) {
@@ -660,7 +668,7 @@
         return string.replace(toRegExp(this), function () {
             var args = rest(arguments);
 
-            var captures = flatten(pluck(node._terms, 'captures'));
+            var captures = orderedCaptures(node);
             var callbackHash = {};
 
             for (var i = 0, len = args.length; i < len; i++) {
@@ -683,7 +691,7 @@
             return null;
         }
 
-        var captures = flatten(pluck(this._terms, 'captures'));
+        var captures = orderedCaptures(this);
         var result = {
             match: execed[0]
         };
