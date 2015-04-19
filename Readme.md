@@ -22,6 +22,9 @@ js-regex has a mix of features that make it especially appealling, when compared
   - Some regex builder libraries have a habit of wrapping almost everything you add in a non-capture group (`(?:<stuff here>)`)
   - The above works, and is easy to make correct
   - But js-regex has the goal of not doing so, whenever actually possible, and transforming non-capture groups to capture groups when `.capture(...)` is called
+* [Named Backreferences](#named-backreferences)
+  - Ignore the [pumping lemma](https://en.wikipedia.org/wiki/Pumping_lemma_for_regular_languages) with your non-regular language expressions
+  - Backreferences, in brief, allow you to refer to a previous captured group, and say that that text has to repeat itself exactly
 
 
 Why?
@@ -249,6 +252,30 @@ regex()
         console.log(rb.exec('this is also awesome!').exclamation);
     });
 ```
+
+### Named Backreferences
+
+You know how JS regular expressions are more powerful than [regular languages](https://en.wikipedia.org/wiki/Regular_language)?  You can reference previous capture terms.  js-regex supports this:
+
+```javascript
+regex()
+    .flags.anything()
+      .repeat(1)
+      .capture('anything')
+    .literal('-')
+    .reference('anything')
+    .call(function (rb) {
+        // Would print '(.+)-\1'
+        console.log(rb.peek());
+
+        // Would print 'whatever'
+        console.log(rb.exec('whatever-whatever').anything);
+
+        // Would print false
+        console.log(rb.test('whatever-whatev'));
+    });
+```
+
 
 Complicated Regexes
 -------------------

@@ -200,6 +200,21 @@ test('Named Capture Groups & Exec', function () {
         });
 });
 
+test('Named Backreferences', function () {
+    'use strict';
+    regex()
+        .flags.anything()
+          .repeat(1)
+          .capture('anything')
+        .literal('-')
+        .reference('anything')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(.+)-\\1');
+            strictEqual(rb.exec('whatever-whatever').anything, 'whatever');
+            ok(!rb.test('whatever-whatev'));
+        });
+});
+
 test('Complex Examples', function () {
     'use strict';
 
