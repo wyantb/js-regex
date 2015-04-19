@@ -44,3 +44,17 @@ test('capturing two anys from a sequence would need non-capture', function () {
             strictEqual(rb.peek(), '(?:[ab][cd])*');
         });
 });
+
+test('cant capture when derived from any any', function () {
+    'use strict';
+    try {
+        regex()
+            .any()
+                .literals('abc') // fine
+                .capture() // uh...no
+            .end();
+        ok(false, 'capturing from in an any shouldnt work');
+    } catch (e) {
+        ok(true);
+    }
+});
