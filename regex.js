@@ -215,9 +215,14 @@
             indicesToBump = [];
             for (i = 0, len = backrefs.length; i < len; i++) {
                 var backref = backrefs[i];
-                if (arrayContains(termCaptures, backref)) {
+                if (arrayContains(termCaptures, backref) &&
+                        !arrayContains(pluck(indicesToBump, 'backref'), backref)) {
+
                     var oldPos = allCaptures.indexOf(backref) + 1;
-                    indicesToBump.push(oldPos);
+                    indicesToBump.push({
+                        backref: backref,
+                        pos: oldPos
+                    });
                 }
             }
         }
@@ -225,8 +230,8 @@
         if (indicesToBump) {
             var termText = term.term;
             for (len = indicesToBump.length, i = len - 1; i >= 0; i--) {
-                var indexToBump = indicesToBump[i];
-                term.term = termText.replace('\\' + indexToBump, '\\' + (indexToBump + 1));
+                var indexToBump = indicesToBump[i].pos;
+                term.term = termText.replace(new RegExp('\\\\' + indexToBump, 'g'), '\\' + (indexToBump + 1));
             }
         }
     }

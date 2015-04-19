@@ -64,4 +64,24 @@ test('capturing a sequence updates backreferences', function () {
         });
 });
 
+test('capturing a sequence updates ALL backrefs, for that matter', function () {
+    'use strict';
+    regex()
+        .seq()
+            .literals('lit')
+              .capture('innerGroup')
+            .reference('innerGroup')
+            .reference('innerGroup')
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(lit)\\1\\1');
+            })
+        .end()
+        .capture('outerGroup')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '((lit)\\2\\2)');
+            strictEqual(rb.exec('litlitlit').innerGroup, 'lit');
+            strictEqual(rb.exec('litlitlit').outerGroup, 'litlitlit');
+        });
+});
+
 // TODO can refer to captures from the parent regex, if any
