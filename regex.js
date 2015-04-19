@@ -248,7 +248,9 @@
     }
 
     RegexBase.call = function call(callback) {
-        callback.call(this, this);
+        var args = rest(arguments);
+        args.unshift(this);
+        callback.apply(this, args);
         return this;
     };
 
