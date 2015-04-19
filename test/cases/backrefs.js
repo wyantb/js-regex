@@ -95,3 +95,19 @@ test('can make a backref to capture groups from parent', function () {
             strictEqual(rb.peek(), '(prequel)\\1');
         });
 });
+
+test('backrefs to parent capture groups dont get updated on capturing', function () {
+    'use strict';
+    regex()
+        .literals('prequel').capture('beforeSeq')
+        .seq()
+            .reference('beforeSeq')
+        .end()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(prequel)\\1');
+        })
+        .capture()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(prequel)(\\1)');
+        });
+});
