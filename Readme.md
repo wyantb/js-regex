@@ -8,7 +8,7 @@ js-regex is a fluent regex builder for JavaScript.  Its aim is to make the writi
 
 ### Features
 
-js-regex has a mix of features that make it especially appealling, when compared to writing raw regexs or using other builder libraries, for building complicated regexes:
+js-regex has a mix of features that make it especially appealing, when compared to writing raw regexs or using other builder libraries, for building complicated regexes:
 
 * [Macros](#macros)
   - Macros are basically named sequences
