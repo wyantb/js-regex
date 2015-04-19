@@ -27,3 +27,20 @@ test('can get actual idx of capture', function () {
             ok(!rb.test('ab'));
         });
 });
+
+test('toTerm (closing seqs, eithers, etc) maintains the backref', function () {
+    'use strict';
+    regex()
+        .seq()
+            .literals('lit')
+              .capture('group')
+            .reference('group')
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(lit)\\1');
+            })
+        .end()
+        .call(function (rb) {
+            ok(rb._terms[0].backrefs, 'wheres the backref?');
+            strictEqual(rb.peek(), '(lit)\\1');
+        });
+});

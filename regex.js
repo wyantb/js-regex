@@ -116,11 +116,26 @@
     };
     RegexBase._toTerm = function _toTerm() {
         return {
+            backrefs: orderedBackrefs(this),
             captures: orderedCaptures(this),
             term: this._renderNodes(),
         };
     };
 
+    function typedToTerm(rb, multitermType) {
+        if (rb._terms.length === 0) {
+            return null;
+        }
+        if (rb._terms.length === 1) {
+            return objectCopy(rb._terms[0]);
+        }
+        return {
+            backrefs: orderedBackrefs(rb),
+            captures: orderedCaptures(rb),
+            type: multitermType,
+            term: rb._renderNodes()
+        };
+    }
     function nodesToArray(rb) {
         var parts = [];
         var nodes = rb._terms;
@@ -171,6 +186,9 @@
     }
     function orderedCaptures(rb) {
         return flatten(pluck(rb._terms, 'captures'));
+    }
+    function orderedBackrefs(rb) {
+        return flatten(pluck(rb._terms, 'backrefs'));
     }
     function wrapCurrentTerm(rb, pre, post, termType) {
         var curTerm = currentTerm(rb);
@@ -538,17 +556,7 @@
     RegexSequence.endSequence = RegexSequence.endSeq = RegexGroup.end;
 
     RegexSequence._toTerm = function _toTerm() {
-        if (this._terms.length === 0) {
-            return null;
-        }
-        if (this._terms.length === 1) {
-            return objectCopy(this._terms[0]);
-        }
-        return {
-            captures: orderedCaptures(this),
-            type: TYPE_MULTITERM,
-            term: this._renderNodes()
-        };
+        return typedToTerm(this, TYPE_MULTITERM);
     };
 
     var RegexCharacterSet = Object.create(RegexBase);
@@ -588,17 +596,7 @@
         return nodesToArray(this).join('|');
     };
     RegexEither._toTerm = function _toTerm() {
-        if (this._terms.length === 0) {
-            return null;
-        }
-        if (this._terms.length === 1) {
-            return objectCopy(this._terms[0]);
-        }
-        return {
-            captures: orderedCaptures(this),
-            type: TYPE_OR,
-            term: this._renderNodes()
-        };
+        return typedToTerm(this, TYPE_OR);
     };
 
     var RegexFollowedBy = Object.create(RegexBase);
