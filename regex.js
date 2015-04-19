@@ -75,8 +75,6 @@
     var STATE_CLOSEDGROUP = 'STATE_CLOSEDGROUP';
     /** literally empty */
     var STATE_EMPTY = 'STATE_EMPTY';
-    /** see or.js testcases - a(?:b|c) is an open noncaptured group - but if user tries to capture right after that, minimal regex demands we replace the noncapture with a capture */
-    var STATE_OPENNONCAPTURE = 'STATE_OPENNONCAPTURE';
     /** like *, or {}, or ? after a term */
     var STATE_MODIFIEDTERM = 'STATE_MODIFIEDTERM';
     /** [abc] - you know, character sets */
@@ -203,12 +201,6 @@
         curTerm.term = pre + curTerm.term + post;
         return rb;
     }
-    function replaceCurrentTerm(rb, match, replace) {
-        var curTerm = currentTerm(rb);
-        curTerm.type = TYPE_TERM;
-        curTerm.term.replace(match, replace);
-        return rb;
-    }
     function identifyCurrentTerm(rb) {
         return identifyState(currentTerm(rb).term);
     }
@@ -312,13 +304,7 @@
         }
 
         addCapture(this, name);
-
-        if (currentTerm(this).type !== TYPE_MULTITERM && identifyCurrentTerm(this) === STATE_OPENNONCAPTURE) {
-            return replaceCurrentTerm(this, '(?:', '(');
-        }
-        else {
-            return wrapCurrentTerm(this, '(', ')');
-        }
+        return wrapCurrentTerm(this, '(', ')');
     };
 
     RegexBase.backref = RegexBase.reference = function backref(name) {
@@ -876,9 +862,6 @@
         }
         if (endsWithNonEscaped(snippet, '?')) {
             return STATE_MODIFIEDTERM;
-        }
-        if (startsWith(snippet, '(?:') && endsWithNonEscaped(snippet, ')')) {
-            return STATE_OPENNONCAPTURE;
         }
         if (startsWith(snippet, '[') && endsWithNonEscaped(snippet, ']')) {
             return STATE_ANY;
