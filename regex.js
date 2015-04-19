@@ -455,7 +455,8 @@
         flags.start =                    addFlag('^');
         flags.end =                      addFlag('$');
 
-        flags.any = flags.dot =          addFlag('.');
+        flags.any = flags.dot =
+            flags.anything =             addFlag('.');
         flags.digit =                    addFlag('\\d');
         flags.nonDigit =                 addFlag('\\D');
         flags.whitespace =               addFlag('\\s');

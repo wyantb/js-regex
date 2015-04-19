@@ -6,6 +6,24 @@ What is it?
 
 js-regex is a fluent regex builder for JavaScript.  Its aim is to make the writing and maintenance of complicated regexes less taxing and error-prone.
 
+### Features
+
+js-regex has a mix of features that make it especially appealling, when compared to writing raw regexs or using other builder libraries, for building complicated regexes:
+
+* [Macros](#macros)
+  - Macros are basically named sequences
+  - That can be registered for a particular builder instance, or across all js-regex objects
+  - That are added onto the current regex as a single term by using `.macro(registeredName)`
+* [Named Capture Groups](#named-capture-groups-and-exec)
+  - When using exec and similar functions, you don't get an array of the matches
+  - Instead, you get an object with the `match` property (representing the entire match of the regex)
+  - Along with a property for each named property group you gave to `.capture(...)`
+* Minimal Generated Expressions
+  - Some regex builder libraries have a habit of wrapping almost everything you add in a non-capture group (`(?:<stuff here>)`)
+  - The above works, and is easy to make correct
+  - But js-regex has the goal of not doing so, whenever actually possible, and transforming non-capture groups to capture groups when `.capture(...)` is called
+
+
 Why?
 ----
 
@@ -187,6 +205,31 @@ regex()
     .peek();               // Will return 'ccc(?!ddd)
 ```
 
+### Named Capture Groups & Exec
+
+```javascript
+regex()
+    .flags.anything()
+      .repeat()
+      .capture('preamble')
+    .either('cool!', 'awesome!')
+      .capture('exclamation')
+    .call(function (rb) {
+        // Would print '(.*)(cool!|awesome!)'
+        console.log(rb.peek());
+
+        // Would print 'this is '
+        console.log(rb.exec('this is cool!  isn\'t it?').preamble);
+        // Would print 'cool!'
+        console.log(rb.exec('this is cool!  isn\'t it?').exclamation);
+
+        // Would print 'this is also '
+        console.log(rb.exec('this is also awesome!').preamble);
+        // Would print 'awesome!'
+        console.log(rb.exec('this is also awesome!').exclamation);
+    });
+```
+
 Complicated Regexes
 -------------------
 
@@ -296,7 +339,7 @@ regex
 Conclusion
 ----------
 
-Perhaps this library piques your interest.  If so, cool!  Let me know!  Just know that there are a few things that I'd like to clean up before really releasing this library;  [see the issues page](https://github.com/wyantb/js-regex/issues) for details.  That and more tests; it's probably too easy to step into a landmine of invalid or senseless regexes right now, so negative coverage (it is not possible to do *these* invalid things with js-regex) and more positive coverage are always helpful.
+Perhaps this library piques your interest.  If so, cool!  Let me know!  Just make sure that nothing on [the issues page](https://github.com/wyantb/js-regex/issues) scares you before jumping in and actually using it.
 
 Really, Really Experimental Methods
 -----------------------------------
@@ -313,7 +356,7 @@ regex()
 
 ### Simple Replacing
 
-replace() is probably pretty buggy, especially with multiple named capture groups.
+Needs more tests.
 
 ```javascript
 regex()
@@ -321,20 +364,4 @@ regex()
     .replace('abc', function () {
         return 'def';
     });              // Will return 'def'
-```
-
-### Named Capture Groups
-
-Probably buggy.
-
-```javascript
-regex()
-    .literals('bbb')
-    .literals('aaa')
-      .capture('named')
-    .literals('bbb')
-    .replace('aaa', function (groups) {
-        console.log(groups.named);     // Will print 'aaa'
-        return 'ccc' + groups.named + 'ccc';
-    });                                // Will return 'cccaaaccc'
 ```

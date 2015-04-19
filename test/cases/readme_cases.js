@@ -175,7 +175,29 @@ test('API Demonstration', function () {
         .peek();               // Will return 'ccc(?!ddd)
 
     strictEqual(result, 'ccc(?!ddd)', 'notFollowedBy()');
+});
 
+test('Named Capture Groups & Exec', function () {
+    'use strict';
+    regex()
+        .flags.anything()
+          .repeat()
+          .capture('preamble')
+        .either('cool!', 'awesome!')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(.*)(?:cool!|awesome!)');
+        })
+          .capture('exclamation')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(.*)(cool!|awesome!)');
+            strictEqual(rb.exec('this is cool!  isn\'t it?').match, 'this is cool!');
+            strictEqual(rb.exec('this is cool!  isn\'t it?').preamble, 'this is ');
+            strictEqual(rb.exec('this is cool!  isn\'t it?').exclamation, 'cool!');
+
+            strictEqual(rb.exec('this is also awesome!').match, 'this is also awesome!');
+            strictEqual(rb.exec('this is also awesome!').preamble, 'this is also ');
+            strictEqual(rb.exec('this is also awesome!').exclamation, 'awesome!');
+        });
 });
 
 test('Complex Examples', function () {
