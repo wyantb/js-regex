@@ -42,7 +42,27 @@ Tests
 
 In addition to the usage documented below, with a matching test suite [here](https://github.com/wyantb/js-regex/blob/master/test/cases/readme_cases.js), there's a fair number of other test cases [here](https://github.com/wyantb/js-regex/tree/master/test/cases).
 
-Although there's a small number of testcase files right now, they actually cover the bases of the library and the combinations of methods you can invoke pretty well; please check them out if you're at all interested.
+At the time of writing, js-regex has more test code than executable code, and this is likely to remain the case:
+
+```
+wc -l regex.js
+851 regex.js
+
+wc -l test/cases/*
+  160 test/cases/alt_syntax.js
+   30 test/cases/any.js
+  163 test/cases/capture.js
+   30 test/cases/flags.js
+   18 test/cases/literals.js
+   68 test/cases/macros.js
+  180 test/cases/or.js
+  427 test/cases/readme_cases.js
+  299 test/cases/repeat.js
+   46 test/cases/sequence.js
+   20 test/cases/states.js
+    9 test/cases/test.js
+ 1450 total
+```
 
 Usage
 -----
