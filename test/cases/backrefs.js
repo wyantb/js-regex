@@ -84,4 +84,14 @@ test('capturing a sequence updates ALL backrefs, for that matter', function () {
         });
 });
 
-// TODO can refer to captures from the parent regex, if any
+test('can make a backref to capture groups from parent', function () {
+    'use strict';
+    regex()
+        .literals('prequel').capture('beforeSeq')
+        .seq()
+            .reference('beforeSeq')
+        .end()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(prequel)\\1');
+        });
+});

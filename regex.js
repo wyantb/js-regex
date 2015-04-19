@@ -161,7 +161,7 @@
         return rb;
     }
     function addBackref(rb, name) {
-        var groupIdx = orderedCaptures(rb).indexOf(name);
+        var groupIdx = orderedCapturesWithParent(rb).indexOf(name);
         if (groupIdx === -1) {
             throw new Error('unrecognized group for backref: ' + name);
         }
@@ -187,6 +187,13 @@
     function orderedCaptures(rb) {
         return flatten(pluck(rb._terms, 'captures'));
     }
+    function orderedCapturesWithParent(rb) {
+        var captures = [orderedCaptures(rb)];
+        if (rb._parent && rb._parent !== regex) {
+            captures.push(orderedCapturesWithParent(rb._parent));
+        }
+        return flatten(captures);
+    }
     function orderedBackrefs(rb) {
         return flatten(pluck(rb._terms, 'backrefs'));
     }
@@ -211,7 +218,7 @@
         var backrefs = term.backrefs;
         var indicesToBump, i, len;
         if (backrefs && backrefs.length) {
-            var allCaptures = orderedCaptures(rb);
+            var allCaptures = orderedCapturesWithParent(rb);
             indicesToBump = [];
             for (i = 0, len = backrefs.length; i < len; i++) {
                 var backref = backrefs[i];
