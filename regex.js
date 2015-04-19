@@ -206,7 +206,29 @@
         return identifyState(currentTerm(rb).term);
     }
     function addCapture(rb, capture) {
-        currentTerm(rb).captures.unshift(capture);
+        var term = currentTerm(rb);
+        var termCaptures = term.captures;
+        var backrefs = term.backrefs;
+        var indicesToBump, i, len;
+        if (backrefs && backrefs.length) {
+            var allCaptures = orderedCaptures(rb);
+            indicesToBump = [];
+            for (i = 0, len = backrefs.length; i < len; i++) {
+                var backref = backrefs[i];
+                if (arrayContains(termCaptures, backref)) {
+                    var oldPos = allCaptures.indexOf(backref) + 1;
+                    indicesToBump.push(oldPos);
+                }
+            }
+        }
+        termCaptures.unshift(capture);
+        if (indicesToBump) {
+            var termText = term.term;
+            for (len = indicesToBump.length, i = len - 1; i >= 0; i--) {
+                var indexToBump = indicesToBump[i];
+                term.term = termText.replace('\\' + indexToBump, '\\' + (indexToBump + 1));
+            }
+        }
     }
     function applyArgumentsToNode(proto, node, args) {
         var toApply = Object.create(proto)._init(node);

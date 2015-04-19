@@ -44,3 +44,24 @@ test('toTerm (closing seqs, eithers, etc) maintains the backref', function () {
             strictEqual(rb.peek(), '(lit)\\1');
         });
 });
+
+test('capturing a sequence updates backreferences', function () {
+    'use strict';
+    regex()
+        .seq()
+            .literals('lit')
+              .capture('innerGroup')
+            .reference('innerGroup')
+            .call(function (rb) {
+                strictEqual(rb.peek(), '(lit)\\1');
+            })
+        .end()
+        .capture('outerGroup')
+        .call(function (rb) {
+            strictEqual(rb.peek(), '((lit)\\2)');
+            strictEqual(rb.exec('litlit').innerGroup, 'lit');
+            strictEqual(rb.exec('litlit').outerGroup, 'litlit');
+        });
+});
+
+// TODO can refer to captures from the parent regex, if any
