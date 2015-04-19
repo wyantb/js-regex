@@ -205,7 +205,7 @@ regex()
     .peek();               // Will return 'ccc(?!ddd)
 ```
 
-### Named Capture Groups & Exec
+### Named Capture Groups and Exec
 
 ```javascript
 regex()
