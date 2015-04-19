@@ -28,3 +28,19 @@ test('any() from dash to slash escapes them', function () {
             ok(rb.test('.'), 'ascii for period is between dash and /, so should test for it correctly');
         });
 });
+
+test('capturing two anys from a sequence would need non-capture', function () {
+    'use strict';
+    regex()
+        .seq()
+            .anyOf('ab')
+            .anyOf('cd')
+        .end()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '[ab][cd]');
+        })
+        .repeat()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:[ab][cd])*');
+        });
+});
