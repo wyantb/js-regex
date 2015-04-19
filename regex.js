@@ -146,7 +146,9 @@
         return rb;
     }
     function addBuilderTerm(rb, term) {
-        rb._terms.push(term);
+        if (term != null) {
+            rb._terms.push(term);
+        }
         return rb;
     }
 
@@ -480,7 +482,6 @@
     var RegexFlags = {};
     RegexFlags._type = 'flags';
     RegexFlags._initFields = RegexBase._initFields;
-    RegexFlags._addTerm = RegexBase._addTerm;
     RegexFlags._renderNodes = RegexBase._renderNodes;
     RegexFlags._toTerm = RegexBase._toTerm;
     RegexFlags.peek = RegexBase.peek;
@@ -511,12 +512,15 @@
     RegexSequence.endSequence = RegexSequence.endSeq = RegexGroup.end;
 
     RegexSequence._toTerm = function _toTerm() {
+        if (this._terms.length === 0) {
+            return null;
+        }
         if (this._terms.length === 1) {
             return objectCopy(this._terms[0]);
         }
         return {
             captures: flatten(pluck(this._terms, 'captures')),
-            type: this._terms.length > 1 ? TYPE_MULTITERM : TYPE_TERM,
+            type: TYPE_MULTITERM,
             term: this._renderNodes()
         };
     };
@@ -558,12 +562,15 @@
         return nodesToArray(this).join('|');
     };
     RegexEither._toTerm = function _toTerm() {
+        if (this._terms.length === 0) {
+            return null;
+        }
         if (this._terms.length === 1) {
             return objectCopy(this._terms[0]);
         }
         return {
             captures: flatten(pluck(this._terms, 'captures')),
-            type: this._terms.length > 1 ? TYPE_OR : TYPE_TERM,
+            type: TYPE_OR,
             term: this._renderNodes()
         };
     };
@@ -587,19 +594,9 @@
     RegexNotFollowedBy._notFlag = true;
     RegexNotFollowedBy.endNotFollowedBy = RegexNotFollowedBy.end;
 
-    var RegexMacro = Object.create(RegexSequence);
+    var RegexMacro = Object.create(RegexGroup);
     RegexMacro._type = 'macro';
-
-    RegexMacro._toTerm = function _toTerm() {
-        if (this._terms.length === 1) {
-            return objectCopy(this._terms[0]);
-        }
-        return {
-            captures: flatten(pluck(this._terms, 'captures')),
-            type: TYPE_MULTITERM,
-            term: this._renderNodes()
-        };
-    };
+    RegexMacro._toTerm = RegexSequence._toTerm;
 
     RegexMacro.endMacro = RegexMacro.end = function end() {
         return this._parent;

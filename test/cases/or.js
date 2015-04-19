@@ -169,3 +169,12 @@ test('recursively entering ors doesnt behave oddly', function () {
         });
 });
 
+test('calling or without doing anything is basically ignored', function () {
+    'use strict';
+    regex()
+        .or().call(function () {}).end()
+        .literals('a')
+        .call(function (rb) {
+            strictEqual(rb.peek(), 'a');
+        });
+});
