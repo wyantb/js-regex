@@ -140,8 +140,17 @@
     function addTerm(rb, term, typeOverride) {
         rb._terms.push({
             captures: [],
-            type: typeOverride,
+            type: typeOverride || TYPE_TERM,
             term: term
+        });
+        return rb;
+    }
+    function addBackref(rb, name) {
+        rb._terms.push({
+            captures: [],
+            backrefs: [name],
+            type: TYPE_TERM,
+            term: '\\1'
         });
         return rb;
     }
@@ -250,6 +259,14 @@
         else {
             return wrapCurrentTerm(this, '(', ')');
         }
+    };
+
+    RegexBase.backref = RegexBase.reference = function backref(name) {
+        if (name == null || typeof name !== 'string') {
+            throw new Error('must give a capture group to reference');
+        }
+
+        return addBackref(this, name);
     };
 
     var TYPES_TO_WRAP = [TYPE_OR, TYPE_MULTITERM, TYPE_REPEAT];
