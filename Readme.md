@@ -21,7 +21,7 @@ js-regex has a mix of features that make it especially appealing, when compared 
 * Minimal Generated Expressions
   - Some regex builder libraries have a habit of wrapping almost everything you add in a non-capture group (`(?:<stuff here>)`)
   - The above works, and is easy to make correct
-  - But js-regex has the goal of not doing so, whenever actually possible, and transforming non-capture groups to capture groups when `.capture(...)` is called
+  - But js-regex has the goal of not doing so whenever actually possible
 * [Named Backreferences](#named-backreferences)
   - Ignore the [pumping lemma](https://en.wikipedia.org/wiki/Pumping_lemma_for_regular_languages) with your non-regular language expressions
   - Backreferences, in brief, allow you to refer to a previous captured group, and say that that text has to repeat itself exactly
