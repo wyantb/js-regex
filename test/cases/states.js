@@ -11,7 +11,6 @@ test('basic states', function () {
     'use strict';
     strictEqual(regex._identifyState(''), 'STATE_EMPTY');
     strictEqual(regex._identifyState('a'), 'STATE_CHARACTER');
-    strictEqual(regex._identifyState('abc'), 'STATE_TERM');
 });
 
 test('((ab){2}) gives closedgroup state', function () {

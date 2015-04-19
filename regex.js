@@ -69,8 +69,6 @@
 
     // TODO separate logical states (some type of closed group) from concrete ones (any, star)
 
-    /** catchall state - generally, when I don't know what to make of a thing, but also, that it doesn't matter anyway */
-    var STATE_TERM = 'STATE_TERM';
     /** catchall group state - when I know I have some kind of group, but don't care what type */
     var STATE_CLOSEDGROUP = 'STATE_CLOSEDGROUP';
     /** literally empty */
@@ -871,7 +869,7 @@
         if (startsWith(snippet, '(') && endsWithNonEscaped(snippet, ')')) {
             return STATE_CLOSEDGROUP;
         }
-        return STATE_TERM;
+        return null; // if I don't understand what the thing is, the behavior isn't reliable anyway
     }
 
     function hasNonEmptyNeighborNode(nodes, i) {
