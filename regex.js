@@ -339,25 +339,20 @@
 
         maybeWrapInOpennoncapture(this);
 
-        if (!arguments.length) {
+        if (min == null || min === 0) {
             return wrapCurrentTerm(this, '', '*', TYPE_REPEAT);
         }
-        else if (arguments.length === 1) {
-            if (min === 0) {
-                return wrapCurrentTerm(this, '', '*', TYPE_REPEAT);
-            }
-            else if (min === 1) {
-                return wrapCurrentTerm(this, '', '+', TYPE_REPEAT);
-            }
-            else {
-                return wrapCurrentTerm(this, '', '{' + min + ',}', TYPE_REPEAT);
-            }
+        else if (min === 1 && max == null) {
+            return wrapCurrentTerm(this, '', '+', TYPE_REPEAT);
         }
-        else if (min !== max) {
-            return wrapCurrentTerm(this, '', '{' + min + ',' + max + '}', TYPE_REPEAT);
+        else if (max == null) {
+            return wrapCurrentTerm(this, '', '{' + min + ',}', TYPE_REPEAT);
+        }
+        else if (min === max) {
+            return wrapCurrentTerm(this, '', '{' + min + '}', TYPE_REPEAT);
         }
         else {
-            return wrapCurrentTerm(this, '', '{' + min + '}', TYPE_REPEAT);
+            return wrapCurrentTerm(this, '', '{' + min + ',' + max + '}', TYPE_REPEAT);
         }
     };
 
