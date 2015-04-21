@@ -22,3 +22,12 @@ test('marking empty obj as optional gives readable error', function () {
         strictEqual(e.message, 'nothing to mark as optional');
     }
 });
+
+test('repeating an optional requires non-capture', function () {
+    'use strict';
+    regex()
+        .literals('?').optional().repeat()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:\\??)*');
+        });
+});
