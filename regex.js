@@ -150,6 +150,7 @@
     }
     function addTerm(rb, term, typeOverride) {
         rb._terms.push({
+            backrefs: [],
             captures: [],
             type: typeOverride || TYPE_TERM,
             term: term
@@ -271,8 +272,56 @@
         return addTerm(this, getLiterals(string));
     };
 
+    function splitRegexTerms (regexp) {
+        var source = regexp.source;
+        var counter = 0;
+        var len = source.length;
+        var termsGenerated = [];
+        var currentTerm;
+
+        var lastControlIdx = 0;
+        var lastControlType = null;
+
+        while (counter < len) {
+            var cur = source[counter];
+
+            switch (cur) {
+            case '|':
+                if (lastControlType == null) {
+                    currentTerm = [];
+                }
+                lastControlType = TYPE_OR;
+                currentTerm.push(source.substr(lastControlIdx, counter));
+                lastControlIdx = counter + 1;
+                break;
+            }
+
+            counter++;
+        }
+
+        if (lastControlType == null) {
+            termsGenerated.push({
+                backrefs: [],
+                captures: [],
+                term: source.substr(lastControlIdx, counter),
+                type: TYPE_TERM
+            });
+        }
+        else if (lastControlType === TYPE_OR) {
+            termsGenerated.push({
+                backrefs: [],
+                captures: [],
+                term: currentTerm.join('|'),
+                type: TYPE_OR
+            });
+        }
+
+        return termsGenerated;
+    }
+
     RegexBase.regex = RegexBase.fromRegex = function (re) {
-        return addTerm(this, re.source);
+        this._terms = flatten([this._terms, splitRegexTerms(re)]);
+        return this;
     };
 
     RegexBase.macro = function macro(name) {
