@@ -267,7 +267,7 @@
         return addTerm(this, getNormalLiteral(character));
     };
 
-    RegexBase.literals = function literals(string) {
+    RegexBase.literals = RegexBase.then = function literals(string) {
         return addTerm(this, getLiterals(string));
     };
 
