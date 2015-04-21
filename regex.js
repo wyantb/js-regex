@@ -178,6 +178,9 @@
     }
 
     function currentTerm(rb) {
+        if (rb._terms.length === 0) {
+            return null;
+        }
         return rb._terms[rb._terms.length - 1];
     }
     function orderedCaptures(rb) {
@@ -200,7 +203,11 @@
         return rb;
     }
     function identifyCurrentTerm(rb) {
-        return identifyState(currentTerm(rb).term);
+        var term = currentTerm(rb);
+        if (term == null) {
+            return STATE_EMPTY;
+        }
+        return identifyState(term.term);
     }
     function addCapture(rb, capture) {
         var term = currentTerm(rb);
