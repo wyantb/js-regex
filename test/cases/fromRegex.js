@@ -20,3 +20,10 @@ test('nodes identify their type (via - ors get wrapped)', function () {
             strictEqual(rb.peek(), 'a(?:UNIX|WINDOWS|MAC)');
         });
 });
+
+// TESTCASE - from(a\|a).literals(a) does not get noncapture
+// TESTCASE - from(aa).repeat() gets noncapture
+// TESTCASE - from((a)(a)).repeat() gets noncapture
+// TESTCASE - from((a)(a)).capture() gets new capture parens
+// TESTCASE - from((a), {captures:['a']}) is valid and makes capture group
+// TESTCASE - basically the same as above, but backrefs too
