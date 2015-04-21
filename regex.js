@@ -271,6 +271,10 @@
         return addTerm(this, getLiterals(string));
     };
 
+    RegexBase.regex = RegexBase.fromRegex = function (re) {
+        return addTerm(this, re.source);
+    };
+
     RegexBase.macro = function macro(name) {
         var mac = this._getMacro(name);
         addBuilderTerm(this, mac._toTerm());
