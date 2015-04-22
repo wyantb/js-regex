@@ -297,3 +297,31 @@ test('numbered repeating twice in a row adds noncaptures', function () {
                 strictEqual(rb.peek(), '(?:(?:ab){2}){2}');
             });
 });
+
+test('supports non-greedy repeats', function () {
+    'use strict';
+    regex()
+        .literals('ab')
+        .repeat(false)
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:ab)*?');
+        });
+    regex()
+        .literals('ab')
+        .repeat(1, false)
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:ab)+?');
+        });
+    regex()
+        .literals('ab')
+        .repeat(true)
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:ab)*');
+        });
+    regex()
+        .literals('ab')
+        .repeat(1, true)
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:ab)+');
+        });
+});

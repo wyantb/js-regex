@@ -346,11 +346,17 @@
 
         maybeWrapInOpennoncapture(this);
 
-        if (min == null || min === 0) {
+        if (min == null || min === 0 || min === true) {
             return wrapCurrentTerm(this, '', '*', TYPE_REPEAT);
         }
-        else if (min === 1 && max == null) {
+        else if (min === false) {
+            return wrapCurrentTerm(this, '', '*?', TYPE_REPEAT);
+        }
+        else if (min === 1 && (max == null || max === true)) {
             return wrapCurrentTerm(this, '', '+', TYPE_REPEAT);
+        }
+        else if (min === 1 && max === false) {
+            return wrapCurrentTerm(this, '', '+?', TYPE_REPEAT);
         }
         else if (max == null) {
             return wrapCurrentTerm(this, '', '{' + min + ',}', TYPE_REPEAT);
