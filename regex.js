@@ -282,20 +282,20 @@
         var lastControlIdx = 0;
         var lastControlType = null;
 
+        var chr, lastChar;
         while (counter < len) {
-            var cur = source[counter];
+            chr = source[counter];
 
-            switch (cur) {
-            case '|':
+            if (chr === '|' && lastChar !== '\\') {
                 if (lastControlType == null) {
                     currentTerm = [];
                 }
                 lastControlType = TYPE_OR;
                 currentTerm.push(source.substr(lastControlIdx, counter));
                 lastControlIdx = counter + 1;
-                break;
             }
 
+            lastChar = chr;
             counter++;
         }
 

@@ -21,9 +21,19 @@ test('nodes identify their type (via - ors get wrapped)', function () {
         });
 });
 
-// TESTCASE - from(a\|a).literals(a) does not get noncapture
+test('from a\\|a doesnt get noncapture', function () {
+    'use strict';
+    regex()
+        .literals('a')
+        .regex(/a\|a/)
+        .call(function (rb) {
+            strictEqual(rb.peek(), 'aa\\|a');
+        });
+});
+
 // TESTCASE - from(aa).repeat() gets noncapture
 // TESTCASE - from((a)(a)).repeat() gets noncapture
+// TESTCASE - from([a][a]).repeat() gets noncapture
 // TESTCASE - from((a)(a)).capture() gets new capture parens
 // TESTCASE - from((a), {captures:['a']}) is valid and makes capture group
 // TESTCASE - basically the same as above, but backrefs too
