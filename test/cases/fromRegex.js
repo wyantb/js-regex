@@ -31,9 +31,28 @@ test('from a\\|a doesnt get noncapture', function () {
         });
 });
 
-// TESTCASE - from(aa).repeat() gets noncapture
-// TESTCASE - from((a)(a)).repeat() gets noncapture
+test('from(aa) gets noncapture', function () {
+    'use strict';
+    regex()
+        .regex(/aa/)
+        .repeat()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:aa)*');
+        });
+});
+
+test('from((a)(a)).repeat() gets noncapture', function () {
+    'use strict';
+    regex()
+        .regex(/(?:a)(?:a)/)
+        .repeat()
+        .call(function (rb) {
+            strictEqual(rb.peek(), '(?:(?:a)(?:a))*');
+        });
+});
+
 // TESTCASE - from([a][a]).repeat() gets noncapture
 // TESTCASE - from((a)(a)).capture() gets new capture parens
+// TESTCASE - (?:a(?:a|a)) generates something rational
 // TESTCASE - from((a), {captures:['a']}) is valid and makes capture group
 // TESTCASE - basically the same as above, but backrefs too

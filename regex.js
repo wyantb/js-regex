@@ -282,7 +282,7 @@
         var lastControlIdx = 0;
         var lastControlType = null;
 
-        var chr, lastChar;
+        var chr, lastChar, next1, next2;
         while (counter < len) {
             chr = source[counter];
 
@@ -293,6 +293,20 @@
                 lastControlType = TYPE_OR;
                 currentTerm.push(source.substr(lastControlIdx, counter));
                 lastControlIdx = counter + 1;
+            }
+            else if (chr === '(' && lastChar !== '\\') {
+                next1 = source[counter + 1];
+                next2 = source[counter + 2];
+
+                if (next1 === '?' && next2 === ':') {
+                    if (lastControlType == null) { currentTerm = []; }
+                    lastControlType = 'type-capture'; // todo
+                    lastControlIdx = counter;
+                }
+            }
+            else if (chr === ')' && lastChar !== '\\' && lastControlType === 'type-capture') {
+                currentTerm.push(source.substr(lastControlIdx, counter + 1));
+                lastControlType = 'type-capture-close';
             }
 
             lastChar = chr;
@@ -313,6 +327,14 @@
                 captures: [],
                 term: currentTerm.join('|'),
                 type: TYPE_OR
+            });
+        }
+        else if (lastControlType === 'type-capture-close') {
+            termsGenerated.push({
+                backrefs: [],
+                captures: [],
+                term: currentTerm.join(''),
+                type: currentTerm.length > 1 ? TYPE_MULTITERM : TYPE_TERM
             });
         }
 
