@@ -298,9 +298,13 @@
                 next1 = source[counter + 1];
                 next2 = source[counter + 2];
 
+                // FIXME wrong on a few counts - don't think I really to care about the type of groups here, just whether or not it's capture or other (lookahead, noncapture)
+                // also, what about (a(a))?  currentTerm can't just be a flat list - it _must_ be the stack of things I've encountered
+                //  (think of the way the chains in this library work with groups)
                 if (next1 === '?' && next2 === ':') {
                     if (lastControlType == null) { currentTerm = []; }
-                    lastControlType = 'type-capture'; // todo
+                    // FIXME - type is probably unnecessary.
+                    lastControlType = 'type-capture';
                     lastControlIdx = counter;
                 }
             }
@@ -330,6 +334,7 @@
             });
         }
         else if (lastControlType === 'type-capture-close') {
+            // FIXME - needs to get applied earlier
             termsGenerated.push({
                 backrefs: [],
                 captures: [],
